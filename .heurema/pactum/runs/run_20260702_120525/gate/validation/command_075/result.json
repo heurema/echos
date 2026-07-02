@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_075",
+  "command": "grep -rl \"func TestEnvelopeHeaderAndInternalSignature(t \\*testing.T)\" --include='*_test.go' .",
+  "started_at": "2026-07-02T13:22:22.713406Z",
+  "finished_at": "2026-07-02T13:22:22.734405Z",
+  "duration_ms": 20,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_075/stdout.log",
+  "stderr": "gate/validation/command_075/stderr.log"
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_043",
+  "command": "grep -rl \"func TestIdentityExternalKeySSHAgentFallback(t \\*testing.T)\" --include='*_test.go' .",
+  "started_at": "2026-07-02T13:22:10.48032Z",
+  "finished_at": "2026-07-02T13:22:10.506217Z",
+  "duration_ms": 25,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_043/stdout.log",
+  "stderr": "gate/validation/command_043/stderr.log"
+}

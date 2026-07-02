@@ -185,6 +185,50 @@ func TestSubagentsSubtreeRoundTrip(t *testing.T) {
 	}
 }
 
+// TestEnvelopeVerifyFilesRejectsMismatch: VerifyFiles rejects a file whose
+// unpacked bytes no longer match the signed manifest's recorded size or
+// SHA-256, whether tampered in place (size unchanged, checksum mismatch) or
+// truncated (size mismatch too).
+func TestEnvelopeVerifyFilesRejectsMismatch(t *testing.T) {
+	sender := newParty(t)
+	recipient := newParty(t)
+
+	openTampered := func(t *testing.T, tamper func(map[string][]byte)) *Opened {
+		t.Helper()
+		blob := buildTestEnvelope(t, sender, recipient, map[string][]byte{
+			"a3f1c9.jsonl": []byte("hello world"),
+		})
+		id, err := AgeIdentity(recipient.priv)
+		if err != nil {
+			t.Fatal(err)
+		}
+		opened, err := Open(blob, id)
+		if err != nil {
+			t.Fatalf("Open: %v", err)
+		}
+		tamper(opened.Files)
+		return opened
+	}
+
+	t.Run("checksum mismatch, same size", func(t *testing.T) {
+		opened := openTampered(t, func(files map[string][]byte) {
+			files["a3f1c9.jsonl"] = []byte("HELLO WORLD") // same length, different bytes
+		})
+		if err := opened.VerifyFiles(); err == nil {
+			t.Fatalf("expected VerifyFiles to reject a checksum mismatch")
+		}
+	})
+
+	t.Run("size mismatch", func(t *testing.T) {
+		opened := openTampered(t, func(files map[string][]byte) {
+			files["a3f1c9.jsonl"] = []byte("short")
+		})
+		if err := opened.VerifyFiles(); err == nil {
+			t.Fatalf("expected VerifyFiles to reject a size mismatch")
+		}
+	})
+}
+
 // TestEnvelopeHeaderAndInternalSignature: the header is readable without
 // age decryption, and nothing sender-identifying is recoverable without it.
 func TestEnvelopeHeaderAndInternalSignature(t *testing.T) {

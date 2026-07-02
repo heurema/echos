@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_082",
+  "command": "go test ./... -run '^TestCLIBehaviorContract$' -v | grep -q -- '--- PASS: TestCLIBehaviorContract'",
+  "started_at": "2026-07-02T13:22:24.745535Z",
+  "finished_at": "2026-07-02T13:22:25.556805Z",
+  "duration_ms": 811,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_082/stdout.log",
+  "stderr": "gate/validation/command_082/stderr.log"
+}

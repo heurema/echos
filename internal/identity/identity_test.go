@@ -1,10 +1,18 @@
 package identity
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/base64"
+	"encoding/pem"
+	"net"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
 )
 
 func TestEnsureCreatesFreshIdentity(t *testing.T) {
@@ -134,4 +142,162 @@ func TestRelayURLResolution(t *testing.T) {
 
 func b64(raw []byte) string {
 	return base64.StdEncoding.EncodeToString(raw)
+}
+
+// TestIdentityExternalKeyUnencryptedReuse: Ensure with --key pointing at an
+// unencrypted ed25519 SSH private key reuses that exact key (not a freshly
+// generated one), and persists it so a later Ensure with no --key loads the
+// same identity.
+func TestIdentityExternalKeyUnencryptedReuse(t *testing.T) {
+	dir := t.TempDir()
+	keyDir := t.TempDir()
+
+	_, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	block, err := ssh.MarshalPrivateKey(priv, "test-key")
+	if err != nil {
+		t.Fatalf("MarshalPrivateKey: %v", err)
+	}
+	keyPath := filepath.Join(keyDir, "id_ed25519")
+	if err := os.WriteFile(keyPath, pem.EncodeToMemory(block), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	id, created, err := Ensure(dir, keyPath)
+	if err != nil {
+		t.Fatalf("Ensure with external unencrypted key: %v", err)
+	}
+	if !created {
+		t.Fatalf("expected created=true on first Ensure")
+	}
+	wantSigner, err := ssh.NewSignerFromKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if id.Fingerprint != Fingerprint(wantSigner.PublicKey()) {
+		t.Fatalf("identity does not reuse the supplied external key")
+	}
+	if id.PrivateKey == nil || !id.PrivateKey.Equal(priv) {
+		t.Fatalf("identity private key does not match the supplied external key")
+	}
+
+	id2, created2, err := Ensure(dir, "")
+	if err != nil {
+		t.Fatalf("second Ensure (no --key): %v", err)
+	}
+	if created2 {
+		t.Fatalf("second Ensure should load the persisted identity, not create a new one")
+	}
+	if id2.Fingerprint != id.Fingerprint {
+		t.Fatalf("fingerprint changed across Ensure calls: %s vs %s", id.Fingerprint, id2.Fingerprint)
+	}
+}
+
+// TestIdentityExternalKeyRejectsNonEd25519: Ensure with --key pointing at a
+// non-ed25519 key (RSA) is rejected, and no identity is persisted.
+func TestIdentityExternalKeyRejectsNonEd25519(t *testing.T) {
+	dir := t.TempDir()
+	keyDir := t.TempDir()
+
+	rsaPriv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	block, err := ssh.MarshalPrivateKey(rsaPriv, "test-rsa-key")
+	if err != nil {
+		t.Fatalf("MarshalPrivateKey: %v", err)
+	}
+	keyPath := filepath.Join(keyDir, "id_rsa")
+	if err := os.WriteFile(keyPath, pem.EncodeToMemory(block), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, _, err := Ensure(dir, keyPath); err == nil {
+		t.Fatalf("expected Ensure to reject a non-ed25519 external key")
+	}
+	if Exists(dir) {
+		t.Fatalf("no identity should be persisted when the external key is rejected")
+	}
+}
+
+// TestIdentityExternalKeySSHAgentFallback: Ensure with --key pointing at a
+// passphrase-protected ed25519 key (never prompted for) falls back to
+// ssh-agent, matched by the key's public counterpart, and produces an
+// identity that can sign but holds no raw private key material locally.
+func TestIdentityExternalKeySSHAgentFallback(t *testing.T) {
+	dir := t.TempDir()
+	keyDir := t.TempDir()
+
+	_, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	block, err := ssh.MarshalPrivateKeyWithPassphrase(priv, "test-key", []byte("s3cret"))
+	if err != nil {
+		t.Fatalf("MarshalPrivateKeyWithPassphrase: %v", err)
+	}
+	keyPath := filepath.Join(keyDir, "id_ed25519")
+	if err := os.WriteFile(keyPath, pem.EncodeToMemory(block), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	signer, err := ssh.NewSignerFromKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(keyPath+".pub", ssh.MarshalAuthorizedKey(signer.PublicKey()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// A short-lived dir outside t.TempDir(): unix socket paths are capped
+	// well below what a nested per-subtest temp dir can produce.
+	sockDir, err := os.MkdirTemp("", "echos-agent")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.RemoveAll(sockDir) })
+	sockPath := filepath.Join(sockDir, "a.sock")
+	ln, err := net.Listen("unix", sockPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { ln.Close() })
+	keyring := agent.NewKeyring()
+	if err := keyring.Add(agent.AddedKey{PrivateKey: priv, Comment: "test-key"}); err != nil {
+		t.Fatal(err)
+	}
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			go agent.ServeAgent(keyring, conn)
+		}
+	}()
+	t.Setenv("SSH_AUTH_SOCK", sockPath)
+
+	id, created, err := Ensure(dir, keyPath)
+	if err != nil {
+		t.Fatalf("Ensure with passphrase-protected key + ssh-agent: %v", err)
+	}
+	if !created {
+		t.Fatalf("expected created=true on first Ensure")
+	}
+	if id.Fingerprint != Fingerprint(signer.PublicKey()) {
+		t.Fatalf("identity fingerprint does not match the agent-backed key")
+	}
+	if id.PrivateKey != nil {
+		t.Fatalf("agent-backed identity should hold no raw private key material")
+	}
+
+	msg := []byte("hello")
+	sig, err := id.Signer.Sign(rand.Reader, msg)
+	if err != nil {
+		t.Fatalf("sign via agent-backed signer: %v", err)
+	}
+	if err := signer.PublicKey().Verify(msg, sig); err != nil {
+		t.Fatalf("agent-produced signature does not verify: %v", err)
+	}
 }

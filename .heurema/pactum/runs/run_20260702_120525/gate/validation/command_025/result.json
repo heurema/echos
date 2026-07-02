@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_025",
+  "command": "grep -q 'X-Echos-Nonce' SPEC.md",
+  "started_at": "2026-07-02T13:22:07.243213Z",
+  "finished_at": "2026-07-02T13:22:07.246725Z",
+  "duration_ms": 3,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_025/stdout.log",
+  "stderr": "gate/validation/command_025/stderr.log"
+}

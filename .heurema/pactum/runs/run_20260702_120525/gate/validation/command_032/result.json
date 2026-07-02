@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_032",
+  "command": "grep -c 'os.IsNotExist(err)' internal/session/codex.go | grep -q '^2$'",
+  "started_at": "2026-07-02T13:22:07.269981Z",
+  "finished_at": "2026-07-02T13:22:07.274272Z",
+  "duration_ms": 4,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_032/stdout.log",
+  "stderr": "gate/validation/command_032/stderr.log"
+}

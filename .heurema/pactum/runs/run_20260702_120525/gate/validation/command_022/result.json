@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_022",
+  "command": "grep -qi 'transitiv' SPEC.md",
+  "started_at": "2026-07-02T13:22:07.232137Z",
+  "finished_at": "2026-07-02T13:22:07.235707Z",
+  "duration_ms": 3,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_022/stdout.log",
+  "stderr": "gate/validation/command_022/stderr.log"
+}

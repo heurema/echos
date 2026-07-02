@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_037",
+  "command": "grep -rl \"func TestRateLimiterEnforcesCapacityBound(t \\*testing.T)\" --include='*_test.go' .",
+  "started_at": "2026-07-02T13:22:08.134429Z",
+  "finished_at": "2026-07-02T13:22:08.161088Z",
+  "duration_ms": 26,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_037/stdout.log",
+  "stderr": "gate/validation/command_037/stderr.log"
+}

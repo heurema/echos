@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_030",
+  "command": "grep -q '413 Request Entity Too Large' SPEC.md",
+  "started_at": "2026-07-02T13:22:07.261702Z",
+  "finished_at": "2026-07-02T13:22:07.265792Z",
+  "duration_ms": 4,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_030/stdout.log",
+  "stderr": "gate/validation/command_030/stderr.log"
+}

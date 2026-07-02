@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_066",
+  "command": "go test ./... -run '^TestOpenDegradationMatrix$' -v | grep -q -- '--- PASS: TestOpenDegradationMatrix'",
+  "started_at": "2026-07-02T13:22:18.854067Z",
+  "finished_at": "2026-07-02T13:22:19.66448Z",
+  "duration_ms": 810,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_066/stdout.log",
+  "stderr": "gate/validation/command_066/stderr.log"
+}

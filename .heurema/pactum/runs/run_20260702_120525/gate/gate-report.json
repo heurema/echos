@@ -1,0 +1,827 @@
+{
+  "schema": "pactum.gate_report.v1alpha1",
+  "run_id": "run_20260702_120525",
+  "created_at": "2026-07-02T13:22:27Z",
+  "status": "needs_review",
+  "execution": {
+    "attempt_id": "attempt_001",
+    "exit_code": 0,
+    "timed_out": false,
+    "result": "execute/last-result.json"
+  },
+  "changes": {
+    "status": "changed",
+    "changed_files": [
+      "SPEC.md",
+      "internal/envelope/envelope_test.go",
+      "internal/identity/identity_test.go",
+      "internal/relayserver/ratelimit.go",
+      "internal/relayserver/server.go",
+      "internal/session/codex.go",
+      "internal/session/session_test.go"
+    ],
+    "new_files": [
+      "cmd/echos/identity_publish_failure_test.go",
+      "cmd/echos/open_resume_test.go",
+      "internal/relayserver/ratelimit_test.go"
+    ],
+    "missing_files": [],
+    "reasons": [
+      "changed file: SPEC.md",
+      "changed file: internal/envelope/envelope_test.go",
+      "changed file: internal/identity/identity_test.go",
+      "changed file: internal/relayserver/ratelimit.go",
+      "changed file: internal/relayserver/server.go",
+      "changed file: internal/session/codex.go",
+      "changed file: internal/session/session_test.go",
+      "new file: cmd/echos/identity_publish_failure_test.go",
+      "new file: cmd/echos/open_resume_test.go",
+      "new file: internal/relayserver/ratelimit_test.go"
+    ]
+  },
+  "validation": {
+    "commands_allowed": true,
+    "commands": [
+      {
+        "id": "command_001",
+        "command": "go build ./...",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_001/stdout.log",
+        "stderr": "gate/validation/command_001/stderr.log",
+        "result": "gate/validation/command_001/result.json"
+      },
+      {
+        "id": "command_002",
+        "command": "go vet ./...",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_002/stdout.log",
+        "stderr": "gate/validation/command_002/stderr.log",
+        "result": "gate/validation/command_002/result.json"
+      },
+      {
+        "id": "command_003",
+        "command": "go test ./...",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_003/stdout.log",
+        "stderr": "gate/validation/command_003/stderr.log",
+        "result": "gate/validation/command_003/result.json"
+      },
+      {
+        "id": "command_004",
+        "command": "grep -q '\"ECHO\"' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_004/stdout.log",
+        "stderr": "gate/validation/command_004/stderr.log",
+        "result": "gate/validation/command_004/result.json"
+      },
+      {
+        "id": "command_005",
+        "command": "grep -q '0x01' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_005/stdout.log",
+        "stderr": "gate/validation/command_005/stderr.log",
+        "result": "gate/validation/command_005/result.json"
+      },
+      {
+        "id": "command_006",
+        "command": "! grep -q 'ECHS' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_006/stdout.log",
+        "stderr": "gate/validation/command_006/stderr.log",
+        "result": "gate/validation/command_006/result.json"
+      },
+      {
+        "id": "command_007",
+        "command": "! grep -q 'project_hint' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_007/stdout.log",
+        "stderr": "gate/validation/command_007/stderr.log",
+        "result": "gate/validation/command_007/result.json"
+      },
+      {
+        "id": "command_008",
+        "command": "grep -q '\"version\"' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_008/stdout.log",
+        "stderr": "gate/validation/command_008/stderr.log",
+        "result": "gate/validation/command_008/result.json"
+      },
+      {
+        "id": "command_009",
+        "command": "grep -q '\"tool\"' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_009/stdout.log",
+        "stderr": "gate/validation/command_009/stderr.log",
+        "result": "gate/validation/command_009/result.json"
+      },
+      {
+        "id": "command_010",
+        "command": "grep -q '\"session_id\"' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_010/stdout.log",
+        "stderr": "gate/validation/command_010/stderr.log",
+        "result": "gate/validation/command_010/result.json"
+      },
+      {
+        "id": "command_011",
+        "command": "grep -q '\"project\"' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_011/stdout.log",
+        "stderr": "gate/validation/command_011/stderr.log",
+        "result": "gate/validation/command_011/result.json"
+      },
+      {
+        "id": "command_012",
+        "command": "grep -q '\"title\"' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_012/stdout.log",
+        "stderr": "gate/validation/command_012/stderr.log",
+        "result": "gate/validation/command_012/result.json"
+      },
+      {
+        "id": "command_013",
+        "command": "grep -q 'sender_echo_id' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_013/stdout.log",
+        "stderr": "gate/validation/command_013/stderr.log",
+        "result": "gate/validation/command_013/result.json"
+      },
+      {
+        "id": "command_014",
+        "command": "grep -q 'sender_fingerprint' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_014/stdout.log",
+        "stderr": "gate/validation/command_014/stderr.log",
+        "result": "gate/validation/command_014/result.json"
+      },
+      {
+        "id": "command_015",
+        "command": "grep -q 'created_at' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_015/stdout.log",
+        "stderr": "gate/validation/command_015/stderr.log",
+        "result": "gate/validation/command_015/result.json"
+      },
+      {
+        "id": "command_016",
+        "command": "grep -q '\"files\"' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_016/stdout.log",
+        "stderr": "gate/validation/command_016/stderr.log",
+        "result": "gate/validation/command_016/result.json"
+      },
+      {
+        "id": "command_017",
+        "command": "grep -q '\"path\"' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_017/stdout.log",
+        "stderr": "gate/validation/command_017/stderr.log",
+        "result": "gate/validation/command_017/result.json"
+      },
+      {
+        "id": "command_018",
+        "command": "grep -q '\"size\"' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_018/stdout.log",
+        "stderr": "gate/validation/command_018/stderr.log",
+        "result": "gate/validation/command_018/result.json"
+      },
+      {
+        "id": "command_019",
+        "command": "grep -q '\"sha256\"' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_019/stdout.log",
+        "stderr": "gate/validation/command_019/stderr.log",
+        "result": "gate/validation/command_019/result.json"
+      },
+      {
+        "id": "command_020",
+        "command": "grep -q 'signature.sig' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_020/stdout.log",
+        "stderr": "gate/validation/command_020/stderr.log",
+        "result": "gate/validation/command_020/result.json"
+      },
+      {
+        "id": "command_021",
+        "command": "grep -q 'raw bytes' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_021/stdout.log",
+        "stderr": "gate/validation/command_021/stderr.log",
+        "result": "gate/validation/command_021/result.json"
+      },
+      {
+        "id": "command_022",
+        "command": "grep -qi 'transitiv' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_022/stdout.log",
+        "stderr": "gate/validation/command_022/stderr.log",
+        "result": "gate/validation/command_022/result.json"
+      },
+      {
+        "id": "command_023",
+        "command": "grep -q 'GET /challenge?fpr={fpr}' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_023/stdout.log",
+        "stderr": "gate/validation/command_023/stderr.log",
+        "result": "gate/validation/command_023/result.json"
+      },
+      {
+        "id": "command_024",
+        "command": "grep -q 'X-Echos-Fingerprint' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_024/stdout.log",
+        "stderr": "gate/validation/command_024/stderr.log",
+        "result": "gate/validation/command_024/result.json"
+      },
+      {
+        "id": "command_025",
+        "command": "grep -q 'X-Echos-Nonce' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_025/stdout.log",
+        "stderr": "gate/validation/command_025/stderr.log",
+        "result": "gate/validation/command_025/result.json"
+      },
+      {
+        "id": "command_026",
+        "command": "grep -q 'X-Echos-Signature' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_026/stdout.log",
+        "stderr": "gate/validation/command_026/stderr.log",
+        "result": "gate/validation/command_026/result.json"
+      },
+      {
+        "id": "command_027",
+        "command": "grep -q '201 Created' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_027/stdout.log",
+        "stderr": "gate/validation/command_027/stderr.log",
+        "result": "gate/validation/command_027/result.json"
+      },
+      {
+        "id": "command_028",
+        "command": "grep -q '401 Unauthorized' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_028/stdout.log",
+        "stderr": "gate/validation/command_028/stderr.log",
+        "result": "gate/validation/command_028/result.json"
+      },
+      {
+        "id": "command_029",
+        "command": "grep -q '410 Gone' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_029/stdout.log",
+        "stderr": "gate/validation/command_029/stderr.log",
+        "result": "gate/validation/command_029/result.json"
+      },
+      {
+        "id": "command_030",
+        "command": "grep -q '413 Request Entity Too Large' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_030/stdout.log",
+        "stderr": "gate/validation/command_030/stderr.log",
+        "result": "gate/validation/command_030/result.json"
+      },
+      {
+        "id": "command_031",
+        "command": "grep -q '429 Too Many Requests' SPEC.md",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_031/stdout.log",
+        "stderr": "gate/validation/command_031/stderr.log",
+        "result": "gate/validation/command_031/result.json"
+      },
+      {
+        "id": "command_032",
+        "command": "grep -c 'os.IsNotExist(err)' internal/session/codex.go | grep -q '^2$'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_032/stdout.log",
+        "stderr": "gate/validation/command_032/stderr.log",
+        "result": "gate/validation/command_032/result.json"
+      },
+      {
+        "id": "command_033",
+        "command": "grep -q 'func rolloutsByID(sessionsRoot string) map\\[string\\]string {' internal/session/codex.go",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_033/stdout.log",
+        "stderr": "gate/validation/command_033/stderr.log",
+        "result": "gate/validation/command_033/result.json"
+      },
+      {
+        "id": "command_034",
+        "command": "grep -c 'rollouts := rolloutsByID(sessionsRoot)' internal/session/codex.go | grep -q '^2$'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_034/stdout.log",
+        "stderr": "gate/validation/command_034/stderr.log",
+        "result": "gate/validation/command_034/result.json"
+      },
+      {
+        "id": "command_035",
+        "command": "grep -rl \"func TestRateLimiterEvictsIdleEntries(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_035/stdout.log",
+        "stderr": "gate/validation/command_035/stderr.log",
+        "result": "gate/validation/command_035/result.json"
+      },
+      {
+        "id": "command_036",
+        "command": "go test ./... -run '^TestRateLimiterEvictsIdleEntries$' -v | grep -q -- '--- PASS: TestRateLimiterEvictsIdleEntries'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_036/stdout.log",
+        "stderr": "gate/validation/command_036/stderr.log",
+        "result": "gate/validation/command_036/result.json"
+      },
+      {
+        "id": "command_037",
+        "command": "grep -rl \"func TestRateLimiterEnforcesCapacityBound(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_037/stdout.log",
+        "stderr": "gate/validation/command_037/stderr.log",
+        "result": "gate/validation/command_037/result.json"
+      },
+      {
+        "id": "command_038",
+        "command": "go test ./... -run '^TestRateLimiterEnforcesCapacityBound$' -v | grep -q -- '--- PASS: TestRateLimiterEnforcesCapacityBound'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_038/stdout.log",
+        "stderr": "gate/validation/command_038/stderr.log",
+        "result": "gate/validation/command_038/result.json"
+      },
+      {
+        "id": "command_039",
+        "command": "grep -rl \"func TestIdentityExternalKeyUnencryptedReuse(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_039/stdout.log",
+        "stderr": "gate/validation/command_039/stderr.log",
+        "result": "gate/validation/command_039/result.json"
+      },
+      {
+        "id": "command_040",
+        "command": "go test ./... -run '^TestIdentityExternalKeyUnencryptedReuse$' -v | grep -q -- '--- PASS: TestIdentityExternalKeyUnencryptedReuse'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_040/stdout.log",
+        "stderr": "gate/validation/command_040/stderr.log",
+        "result": "gate/validation/command_040/result.json"
+      },
+      {
+        "id": "command_041",
+        "command": "grep -rl \"func TestIdentityExternalKeyRejectsNonEd25519(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_041/stdout.log",
+        "stderr": "gate/validation/command_041/stderr.log",
+        "result": "gate/validation/command_041/result.json"
+      },
+      {
+        "id": "command_042",
+        "command": "go test ./... -run '^TestIdentityExternalKeyRejectsNonEd25519$' -v | grep -q -- '--- PASS: TestIdentityExternalKeyRejectsNonEd25519'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_042/stdout.log",
+        "stderr": "gate/validation/command_042/stderr.log",
+        "result": "gate/validation/command_042/result.json"
+      },
+      {
+        "id": "command_043",
+        "command": "grep -rl \"func TestIdentityExternalKeySSHAgentFallback(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_043/stdout.log",
+        "stderr": "gate/validation/command_043/stderr.log",
+        "result": "gate/validation/command_043/result.json"
+      },
+      {
+        "id": "command_044",
+        "command": "go test ./... -run '^TestIdentityExternalKeySSHAgentFallback$' -v | grep -q -- '--- PASS: TestIdentityExternalKeySSHAgentFallback'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_044/stdout.log",
+        "stderr": "gate/validation/command_044/stderr.log",
+        "result": "gate/validation/command_044/result.json"
+      },
+      {
+        "id": "command_045",
+        "command": "grep -rl \"func TestOpenResumeExec(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_045/stdout.log",
+        "stderr": "gate/validation/command_045/stderr.log",
+        "result": "gate/validation/command_045/result.json"
+      },
+      {
+        "id": "command_046",
+        "command": "go test ./... -run '^TestOpenResumeExec$' -v | grep -q -- '--- PASS: TestOpenResumeExec'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_046/stdout.log",
+        "stderr": "gate/validation/command_046/stderr.log",
+        "result": "gate/validation/command_046/result.json"
+      },
+      {
+        "id": "command_047",
+        "command": "grep -rl \"func TestIdentityPublishFailureDegrades(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_047/stdout.log",
+        "stderr": "gate/validation/command_047/stderr.log",
+        "result": "gate/validation/command_047/result.json"
+      },
+      {
+        "id": "command_048",
+        "command": "go test ./... -run '^TestIdentityPublishFailureDegrades$' -v | grep -q -- '--- PASS: TestIdentityPublishFailureDegrades'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_048/stdout.log",
+        "stderr": "gate/validation/command_048/stderr.log",
+        "result": "gate/validation/command_048/result.json"
+      },
+      {
+        "id": "command_049",
+        "command": "grep -rl \"func TestEnvelopeVerifyFilesRejectsMismatch(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_049/stdout.log",
+        "stderr": "gate/validation/command_049/stderr.log",
+        "result": "gate/validation/command_049/result.json"
+      },
+      {
+        "id": "command_050",
+        "command": "go test ./... -run '^TestEnvelopeVerifyFilesRejectsMismatch$' -v | grep -q -- '--- PASS: TestEnvelopeVerifyFilesRejectsMismatch'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_050/stdout.log",
+        "stderr": "gate/validation/command_050/stderr.log",
+        "result": "gate/validation/command_050/result.json"
+      },
+      {
+        "id": "command_051",
+        "command": "grep -rl \"func TestSessionsDiscovery(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_051/stdout.log",
+        "stderr": "gate/validation/command_051/stderr.log",
+        "result": "gate/validation/command_051/result.json"
+      },
+      {
+        "id": "command_052",
+        "command": "go test ./... -run '^TestSessionsDiscovery$' -v | grep -q -- '--- PASS: TestSessionsDiscovery'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_052/stdout.log",
+        "stderr": "gate/validation/command_052/stderr.log",
+        "result": "gate/validation/command_052/result.json"
+      },
+      {
+        "id": "command_053",
+        "command": "grep -rl \"func TestIdentityLifecycle(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_053/stdout.log",
+        "stderr": "gate/validation/command_053/stderr.log",
+        "result": "gate/validation/command_053/result.json"
+      },
+      {
+        "id": "command_054",
+        "command": "go test ./... -run '^TestIdentityLifecycle$' -v | grep -q -- '--- PASS: TestIdentityLifecycle'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_054/stdout.log",
+        "stderr": "gate/validation/command_054/stderr.log",
+        "result": "gate/validation/command_054/result.json"
+      },
+      {
+        "id": "command_055",
+        "command": "grep -rl \"func TestEnvelopeRoundTrip(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_055/stdout.log",
+        "stderr": "gate/validation/command_055/stderr.log",
+        "result": "gate/validation/command_055/result.json"
+      },
+      {
+        "id": "command_056",
+        "command": "go test ./... -run '^TestEnvelopeRoundTrip$' -v | grep -q -- '--- PASS: TestEnvelopeRoundTrip'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_056/stdout.log",
+        "stderr": "gate/validation/command_056/stderr.log",
+        "result": "gate/validation/command_056/result.json"
+      },
+      {
+        "id": "command_057",
+        "command": "grep -rl \"func TestSubagentsSubtreeRoundTrip(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_057/stdout.log",
+        "stderr": "gate/validation/command_057/stderr.log",
+        "result": "gate/validation/command_057/result.json"
+      },
+      {
+        "id": "command_058",
+        "command": "go test ./... -run '^TestSubagentsSubtreeRoundTrip$' -v | grep -q -- '--- PASS: TestSubagentsSubtreeRoundTrip'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_058/stdout.log",
+        "stderr": "gate/validation/command_058/stderr.log",
+        "result": "gate/validation/command_058/result.json"
+      },
+      {
+        "id": "command_059",
+        "command": "grep -rl \"func TestRelayAuthRejectsUnsignedOrInvalidReads(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_059/stdout.log",
+        "stderr": "gate/validation/command_059/stderr.log",
+        "result": "gate/validation/command_059/result.json"
+      },
+      {
+        "id": "command_060",
+        "command": "go test ./... -run '^TestRelayAuthRejectsUnsignedOrInvalidReads$' -v | grep -q -- '--- PASS: TestRelayAuthRejectsUnsignedOrInvalidReads'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_060/stdout.log",
+        "stderr": "gate/validation/command_060/stderr.log",
+        "result": "gate/validation/command_060/result.json"
+      },
+      {
+        "id": "command_061",
+        "command": "grep -rl \"func TestEndToEndSendInboxOpen_Claude(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_061/stdout.log",
+        "stderr": "gate/validation/command_061/stderr.log",
+        "result": "gate/validation/command_061/result.json"
+      },
+      {
+        "id": "command_062",
+        "command": "go test ./... -run '^TestEndToEndSendInboxOpen_Claude$' -v | grep -q -- '--- PASS: TestEndToEndSendInboxOpen_Claude'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_062/stdout.log",
+        "stderr": "gate/validation/command_062/stderr.log",
+        "result": "gate/validation/command_062/result.json"
+      },
+      {
+        "id": "command_063",
+        "command": "grep -rl \"func TestEndToEndSendInboxOpen_Codex(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_063/stdout.log",
+        "stderr": "gate/validation/command_063/stderr.log",
+        "result": "gate/validation/command_063/result.json"
+      },
+      {
+        "id": "command_064",
+        "command": "go test ./... -run '^TestEndToEndSendInboxOpen_Codex$' -v | grep -q -- '--- PASS: TestEndToEndSendInboxOpen_Codex'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_064/stdout.log",
+        "stderr": "gate/validation/command_064/stderr.log",
+        "result": "gate/validation/command_064/result.json"
+      },
+      {
+        "id": "command_065",
+        "command": "grep -rl \"func TestOpenDegradationMatrix(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_065/stdout.log",
+        "stderr": "gate/validation/command_065/stderr.log",
+        "result": "gate/validation/command_065/result.json"
+      },
+      {
+        "id": "command_066",
+        "command": "go test ./... -run '^TestOpenDegradationMatrix$' -v | grep -q -- '--- PASS: TestOpenDegradationMatrix'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_066/stdout.log",
+        "stderr": "gate/validation/command_066/stderr.log",
+        "result": "gate/validation/command_066/result.json"
+      },
+      {
+        "id": "command_067",
+        "command": "grep -rl \"func TestOpenRejectsUnsafeArchivePaths(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_067/stdout.log",
+        "stderr": "gate/validation/command_067/stderr.log",
+        "result": "gate/validation/command_067/result.json"
+      },
+      {
+        "id": "command_068",
+        "command": "go test ./... -run '^TestOpenRejectsUnsafeArchivePaths$' -v | grep -q -- '--- PASS: TestOpenRejectsUnsafeArchivePaths'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_068/stdout.log",
+        "stderr": "gate/validation/command_068/stderr.log",
+        "result": "gate/validation/command_068/result.json"
+      },
+      {
+        "id": "command_069",
+        "command": "grep -rl \"func TestJSONOutputSchemas(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_069/stdout.log",
+        "stderr": "gate/validation/command_069/stderr.log",
+        "result": "gate/validation/command_069/result.json"
+      },
+      {
+        "id": "command_070",
+        "command": "go test ./... -run '^TestJSONOutputSchemas$' -v | grep -q -- '--- PASS: TestJSONOutputSchemas'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_070/stdout.log",
+        "stderr": "gate/validation/command_070/stderr.log",
+        "result": "gate/validation/command_070/result.json"
+      },
+      {
+        "id": "command_071",
+        "command": "grep -rl \"func TestKeyPublicationAndFriendResolution(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_071/stdout.log",
+        "stderr": "gate/validation/command_071/stderr.log",
+        "result": "gate/validation/command_071/result.json"
+      },
+      {
+        "id": "command_072",
+        "command": "go test ./... -run '^TestKeyPublicationAndFriendResolution$' -v | grep -q -- '--- PASS: TestKeyPublicationAndFriendResolution'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_072/stdout.log",
+        "stderr": "gate/validation/command_072/stderr.log",
+        "result": "gate/validation/command_072/result.json"
+      },
+      {
+        "id": "command_073",
+        "command": "grep -rl \"func TestSendDefaultsToCwdProjectLatestSession(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_073/stdout.log",
+        "stderr": "gate/validation/command_073/stderr.log",
+        "result": "gate/validation/command_073/result.json"
+      },
+      {
+        "id": "command_074",
+        "command": "go test ./... -run '^TestSendDefaultsToCwdProjectLatestSession$' -v | grep -q -- '--- PASS: TestSendDefaultsToCwdProjectLatestSession'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_074/stdout.log",
+        "stderr": "gate/validation/command_074/stderr.log",
+        "result": "gate/validation/command_074/result.json"
+      },
+      {
+        "id": "command_075",
+        "command": "grep -rl \"func TestEnvelopeHeaderAndInternalSignature(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_075/stdout.log",
+        "stderr": "gate/validation/command_075/stderr.log",
+        "result": "gate/validation/command_075/result.json"
+      },
+      {
+        "id": "command_076",
+        "command": "go test ./... -run '^TestEnvelopeHeaderAndInternalSignature$' -v | grep -q -- '--- PASS: TestEnvelopeHeaderAndInternalSignature'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_076/stdout.log",
+        "stderr": "gate/validation/command_076/stderr.log",
+        "result": "gate/validation/command_076/result.json"
+      },
+      {
+        "id": "command_077",
+        "command": "grep -rl \"func TestOpenRejectsUnknownSender(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_077/stdout.log",
+        "stderr": "gate/validation/command_077/stderr.log",
+        "result": "gate/validation/command_077/result.json"
+      },
+      {
+        "id": "command_078",
+        "command": "go test ./... -run '^TestOpenRejectsUnknownSender$' -v | grep -q -- '--- PASS: TestOpenRejectsUnknownSender'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_078/stdout.log",
+        "stderr": "gate/validation/command_078/stderr.log",
+        "result": "gate/validation/command_078/result.json"
+      },
+      {
+        "id": "command_079",
+        "command": "grep -rl \"func TestRelayZeroKnowledgeStorageAndExpiry(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_079/stdout.log",
+        "stderr": "gate/validation/command_079/stderr.log",
+        "result": "gate/validation/command_079/result.json"
+      },
+      {
+        "id": "command_080",
+        "command": "go test ./... -run '^TestRelayZeroKnowledgeStorageAndExpiry$' -v | grep -q -- '--- PASS: TestRelayZeroKnowledgeStorageAndExpiry'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_080/stdout.log",
+        "stderr": "gate/validation/command_080/stderr.log",
+        "result": "gate/validation/command_080/result.json"
+      },
+      {
+        "id": "command_081",
+        "command": "grep -rl \"func TestCLIBehaviorContract(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_081/stdout.log",
+        "stderr": "gate/validation/command_081/stderr.log",
+        "result": "gate/validation/command_081/result.json"
+      },
+      {
+        "id": "command_082",
+        "command": "go test ./... -run '^TestCLIBehaviorContract$' -v | grep -q -- '--- PASS: TestCLIBehaviorContract'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_082/stdout.log",
+        "stderr": "gate/validation/command_082/stderr.log",
+        "result": "gate/validation/command_082/result.json"
+      },
+      {
+        "id": "command_083",
+        "command": "grep -rl \"func TestChallengeNonceExpiryAndReplay(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_083/stdout.log",
+        "stderr": "gate/validation/command_083/stderr.log",
+        "result": "gate/validation/command_083/result.json"
+      },
+      {
+        "id": "command_084",
+        "command": "go test ./... -run '^TestChallengeNonceExpiryAndReplay$' -v | grep -q -- '--- PASS: TestChallengeNonceExpiryAndReplay'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_084/stdout.log",
+        "stderr": "gate/validation/command_084/stderr.log",
+        "result": "gate/validation/command_084/result.json"
+      },
+      {
+        "id": "command_085",
+        "command": "grep -rl \"func TestRelayLimits(t \\*testing.T)\" --include='*_test.go' .",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_085/stdout.log",
+        "stderr": "gate/validation/command_085/stderr.log",
+        "result": "gate/validation/command_085/result.json"
+      },
+      {
+        "id": "command_086",
+        "command": "go test ./... -run '^TestRelayLimits$' -v | grep -q -- '--- PASS: TestRelayLimits'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_086/stdout.log",
+        "stderr": "gate/validation/command_086/stderr.log",
+        "result": "gate/validation/command_086/result.json"
+      }
+    ]
+  },
+  "summary": {
+    "execution_passed": true,
+    "validation_passed": true,
+    "changes_need_review": true,
+    "scope_blocked": false
+  }
+}

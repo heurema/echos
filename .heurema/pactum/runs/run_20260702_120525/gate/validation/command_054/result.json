@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_054",
+  "command": "go test ./... -run '^TestIdentityLifecycle$' -v | grep -q -- '--- PASS: TestIdentityLifecycle'",
+  "started_at": "2026-07-02T13:22:14.54354Z",
+  "finished_at": "2026-07-02T13:22:15.19564Z",
+  "duration_ms": 652,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_054/stdout.log",
+  "stderr": "gate/validation/command_054/stderr.log"
+}

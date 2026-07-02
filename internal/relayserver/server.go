@@ -55,10 +55,12 @@ type Server struct {
 
 func New(store *Store, cfg Config) *Server {
 	cfg.setDefaults()
+	limiter := NewIPRateLimiter(cfg.RateLimit)
+	limiter.now = cfg.Now
 	return &Server{
 		store:      store,
 		challenges: NewChallengeStore(cfg.ChallengeTTL),
-		limiter:    NewIPRateLimiter(cfg.RateLimit),
+		limiter:    limiter,
 		cfg:        cfg,
 	}
 }

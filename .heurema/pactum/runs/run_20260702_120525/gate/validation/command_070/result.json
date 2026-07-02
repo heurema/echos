@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_070",
+  "command": "go test ./... -run '^TestJSONOutputSchemas$' -v | grep -q -- '--- PASS: TestJSONOutputSchemas'",
+  "started_at": "2026-07-02T13:22:20.522629Z",
+  "finished_at": "2026-07-02T13:22:21.32816Z",
+  "duration_ms": 805,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_070/stdout.log",
+  "stderr": "gate/validation/command_070/stderr.log"
+}

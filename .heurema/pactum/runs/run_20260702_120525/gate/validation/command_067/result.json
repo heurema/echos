@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_067",
+  "command": "grep -rl \"func TestOpenRejectsUnsafeArchivePaths(t \\*testing.T)\" --include='*_test.go' .",
+  "started_at": "2026-07-02T13:22:19.664751Z",
+  "finished_at": "2026-07-02T13:22:19.690674Z",
+  "duration_ms": 25,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_067/stdout.log",
+  "stderr": "gate/validation/command_067/stderr.log"
+}

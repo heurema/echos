@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_004",
+  "command": "grep -q '\"ECHO\"' SPEC.md",
+  "started_at": "2026-07-02T13:22:07.155819Z",
+  "finished_at": "2026-07-02T13:22:07.162029Z",
+  "duration_ms": 6,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_004/stdout.log",
+  "stderr": "gate/validation/command_004/stderr.log"
+}

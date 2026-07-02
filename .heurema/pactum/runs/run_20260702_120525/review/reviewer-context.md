@@ -1,0 +1,253 @@
+# Reviewer Context
+
+## Run
+- Run id: run_20260702_120525
+- Run status: contract_approved
+
+## Contract
+- Goal: Pay down the advisory tech-debt surfaced by run_20260702_085315's code review: correct SPEC.md so it matches the shipped Envelope v1 / Relay API wire format, bound the relay's per-source-IP rate-limiter memory, remove unreachable dead code in the Codex adapter, and add tests for the currently-untested identity/open/publish/verify branches — all WITHOUT changing the shipped wire contract or CLI behavior (docs and tests are brought in line with the code, not the reverse).
+- In scope:
+  - Update SPEC.md sections 4 (Envelope) and 5 (Relay API) to match the shipped implementation: the 5-byte header of ASCII magic "ECHO" + version byte 0x01 (not "ECHS"); the real manifest.json schema {version,tool,session_id,project,title,sender_echo_id,sender_fingerprint,created_at,files[{path,size,sha256}]}; signature.sig computed over manifest.json's raw bytes, with the files[].sha256 transitive-binding explained; and the actual relay endpoints/shapes including the exact `GET /challenge?fpr={fpr}` endpoint, each of the three auth headers (X-Echos-Fingerprint, X-Echos-Nonce, X-Echos-Signature) named individually, and each of the five relay status codes attached to the endpoint(s) that produce it (201 Created on POST /keys and POST /mailbox, 401 Unauthorized on failed challenge auth, 410 Gone on expired GET /blob, 413 Request Entity Too Large on oversized POST /mailbox, 429 Too Many Requests on rate-limited POST /mailbox). Also reconcile any remaining stale mentions (e.g. echo-id = first 20 hex of the SHA-256 key fingerprint; kong not stdlib flag).
+  - Bound the relay per-source-IP rate limiter (internal/relayserver/ratelimit.go) memory footprint with two complementary mechanisms: (a) entries that have been idle (no request from that source IP) for longer than a defined idle TTL are evicted — via the same periodic-sweep pattern as the already-fixed challenge-nonce sweep (or lazy eviction on access, or both); and (b) a hard maximum entry-count cap is enforced on the limiter map — when adding a new source IP's entry would exceed the cap, the least-recently-used entry is evicted to make room. Together these ensure the map's total entry count is truly bounded at all times: bounded by the idle TTL under normal turnover, and bounded by the hard cap even under sustained traffic from more distinct, simultaneously-active (non-idle) source IPs than the cap, regardless of how many requests any single IP sends. This is an internal memory-management mechanism of the limiter's bookkeeping map, not a change to the documented Relay API request/response shapes, endpoints, or status codes: it only alters which source IP's rate-limit counter is evicted when the number of distinct, concurrently-active source IPs exceeds the cap, and has no observable effect on traffic patterns that stay within the cap.
+  - Remove the unreachable dead code in internal/session/codex.go: rolloutsByID's WalkDir callback currently returns nil on every error, making the os.IsNotExist(err) recovery in Discover and the error returns in rolloutsByID/Package unreachable — delete the dead branches (the unreachable os.IsNotExist(err) recovery in Discover and the unreachable error returns in rolloutsByID/Package) rather than propagating WalkDir errors, since propagating errors could change Discover/Package's observable behavior (exit codes, --json output, error-next-command), which scope.out forbids changing.
+  - Add regression tests for the untested branches: the --key external-SSH-key identity path [f_005], covered by three separate named tests — one exercising unencrypted-ed25519 key reuse, one exercising rejection of a non-ed25519 key, and one exercising ssh-agent fallback; the `echos open --resume` opt-in exec path [f_006]; the identity key-publication-failure degradation (identity still created, warning printed, exit 0 when relay POST /keys fails) [f_007]; and envelope VerifyFiles' size/checksum-mismatch rejection branch [f_008].
+- Out of scope:
+  - Any change to the Envelope v1 wire format or the Relay API's documented request/response shapes, endpoints, or status codes — SPEC.md is corrected to describe the code, the code is not changed to match old docs. This does not prohibit the scope.in-required internal rate-limiter LRU/idle-TTL eviction mechanism, which manages the limiter's in-memory bookkeeping map and does not alter any documented endpoint, request/response shape, or status code, nor any behavior observed within the configured entry-count cap.
+  - Any change to the CLI command surface, flags, output, or the behavior contract (exit codes, --json, no-stdin, error-next-command).
+  - New product features or any second-ring item (send --link, --scrub, --once, inbox --watch, friend list/rm, exporters).
+  - Re-architecting the relay store, identity, or adapters beyond the localized fixes above.
+- Acceptance criteria:
+  - SPEC.md sections 4 (Envelope) and 5 (Relay API) are corrected to match the shipped code: the header is the 5-byte "ECHO" magic + version byte 0x01; the manifest.json schema is documented with its full field set {version, tool, session_id, project, title, sender_echo_id, sender_fingerprint, created_at, files[{path,size,sha256}]}; signature.sig is documented as signing manifest.json's raw bytes with files bound transitively via files[].sha256; and the Relay API documents GET /challenge?fpr={fpr}, the three auth headers (X-Echos-Fingerprint/Nonce/Signature), and the real status codes (201/401/410/413/429). SPEC.md no longer references the old "ECHS" magic, the stale manifest fields (project_hint, "echos":1), or a stdlib flag CLI. Representative facts are spot-checked by grep at gate time; exhaustive per-token grepping is explicitly not required.
+  - The relay per-source-IP rate limiter bounds memory two complementary ways: (1) it evicts entries idle longer than a defined idle TTL — covered by TestRateLimiterEvictsIdleEntries, which uses the injectable clock to advance past the idle TTL and asserts the map no longer retains the idle entries / stays at a bounded size, deterministically (no real sleeps); and (2) it enforces a hard maximum entry-count cap via least-recently-used eviction, so the map's total entry count never exceeds that cap even when more distinct source IPs than the cap are simultaneously active and none is idle — covered by TestRateLimiterEnforcesCapacityBound, which drives requests from more distinct, concurrently-active source IPs than the configured cap and asserts both (a) the map's entry count never exceeds the cap at any point, and (b) the eviction order is actually least-recently-used and not merely bounded: the test touches a specific existing entry (e.g. by sending it a request) to make it the most-recently-used among the first cap entries immediately before inserting one more distinct source IP beyond the cap, then asserts that the untouched, least-recently-used entry is the one evicted (its state is gone / reset) while the touched entry's state survives.
+  - internal/session/codex.go has no unreachable error-handling dead code: the unreachable os.IsNotExist(err) recovery branch in Discover and the unreachable error-return branches in rolloutsByID/Package are deleted (WalkDir errors continue to be swallowed rather than propagated, per scope.in). rolloutsByID no longer returns an error (its signature becomes func rolloutsByID(sessionsRoot string) map[string]string), and both call sites in Discover and Package assign its result directly with no err check. Verified by go build ./... and go vet ./... passing, plus concrete greps: exactly two remaining occurrences of os.IsNotExist(err) in internal/session/codex.go (the session_index.jsonl open in Discover and the index rewrite in upsertCodexIndex — the only non-dead uses), a grep confirming rolloutsByID's signature no longer returns an error, and a grep confirming both call sites match the error-free call form; Discover/Package behavior for the covered on-disk layouts is unchanged.
+  - New named tests exist, actually execute, and pass, covering the previously-untested branches: three distinct tests for the --key external-SSH-key identity path — TestIdentityExternalKeyUnencryptedReuse (unencrypted-ed25519 key reuse), TestIdentityExternalKeyRejectsNonEd25519 (non-ed25519 key rejection), and TestIdentityExternalKeySSHAgentFallback (ssh-agent fallback) — plus TestOpenResumeExec for `echos open --resume` exec, TestIdentityPublishFailureDegrades for identity publish-failure degradation, and TestEnvelopeVerifyFilesRejectsMismatch for envelope VerifyFiles mismatch rejection. Each test is confirmed to exist via grep of its `func <TestName>(t *testing.T)` signature, and confirmed passing by running `go test ./... -run '^<TestName>$' -v` piped into a grep for a `--- PASS: <TestName>` line naming that exact test.
+- Validation commands:
+  - go build ./...
+  - go vet ./...
+  - go test ./...
+  - grep -q '"ECHO"' SPEC.md
+  - grep -q '0x01' SPEC.md
+  - ! grep -q 'ECHS' SPEC.md
+  - ! grep -q 'project_hint' SPEC.md
+  - grep -q '"version"' SPEC.md
+  - grep -q '"tool"' SPEC.md
+  - grep -q '"session_id"' SPEC.md
+  - grep -q '"project"' SPEC.md
+  - grep -q '"title"' SPEC.md
+  - grep -q 'sender_echo_id' SPEC.md
+  - grep -q 'sender_fingerprint' SPEC.md
+  - grep -q 'created_at' SPEC.md
+  - grep -q '"files"' SPEC.md
+  - grep -q '"path"' SPEC.md
+  - grep -q '"size"' SPEC.md
+  - grep -q '"sha256"' SPEC.md
+  - grep -q 'signature.sig' SPEC.md
+  - grep -q 'raw bytes' SPEC.md
+  - grep -qi 'transitiv' SPEC.md
+  - grep -q 'GET /challenge?fpr={fpr}' SPEC.md
+  - grep -q 'X-Echos-Fingerprint' SPEC.md
+  - grep -q 'X-Echos-Nonce' SPEC.md
+  - grep -q 'X-Echos-Signature' SPEC.md
+  - grep -q '201 Created' SPEC.md
+  - grep -q '401 Unauthorized' SPEC.md
+  - grep -q '410 Gone' SPEC.md
+  - grep -q '413 Request Entity Too Large' SPEC.md
+  - grep -q '429 Too Many Requests' SPEC.md
+  - grep -c 'os.IsNotExist(err)' internal/session/codex.go | grep -q '^2$'
+  - grep -q 'func rolloutsByID(sessionsRoot string) map\[string\]string {' internal/session/codex.go
+  - grep -c 'rollouts := rolloutsByID(sessionsRoot)' internal/session/codex.go | grep -q '^2$'
+  - grep -rl "func TestRateLimiterEvictsIdleEntries(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestRateLimiterEvictsIdleEntries$' -v | grep -q -- '--- PASS: TestRateLimiterEvictsIdleEntries'
+  - grep -rl "func TestRateLimiterEnforcesCapacityBound(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestRateLimiterEnforcesCapacityBound$' -v | grep -q -- '--- PASS: TestRateLimiterEnforcesCapacityBound'
+  - grep -rl "func TestIdentityExternalKeyUnencryptedReuse(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestIdentityExternalKeyUnencryptedReuse$' -v | grep -q -- '--- PASS: TestIdentityExternalKeyUnencryptedReuse'
+  - grep -rl "func TestIdentityExternalKeyRejectsNonEd25519(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestIdentityExternalKeyRejectsNonEd25519$' -v | grep -q -- '--- PASS: TestIdentityExternalKeyRejectsNonEd25519'
+  - grep -rl "func TestIdentityExternalKeySSHAgentFallback(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestIdentityExternalKeySSHAgentFallback$' -v | grep -q -- '--- PASS: TestIdentityExternalKeySSHAgentFallback'
+  - grep -rl "func TestOpenResumeExec(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestOpenResumeExec$' -v | grep -q -- '--- PASS: TestOpenResumeExec'
+  - grep -rl "func TestIdentityPublishFailureDegrades(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestIdentityPublishFailureDegrades$' -v | grep -q -- '--- PASS: TestIdentityPublishFailureDegrades'
+  - grep -rl "func TestEnvelopeVerifyFilesRejectsMismatch(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestEnvelopeVerifyFilesRejectsMismatch$' -v | grep -q -- '--- PASS: TestEnvelopeVerifyFilesRejectsMismatch'
+  - grep -rl "func TestSessionsDiscovery(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestSessionsDiscovery$' -v | grep -q -- '--- PASS: TestSessionsDiscovery'
+  - grep -rl "func TestIdentityLifecycle(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestIdentityLifecycle$' -v | grep -q -- '--- PASS: TestIdentityLifecycle'
+  - grep -rl "func TestEnvelopeRoundTrip(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestEnvelopeRoundTrip$' -v | grep -q -- '--- PASS: TestEnvelopeRoundTrip'
+  - grep -rl "func TestSubagentsSubtreeRoundTrip(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestSubagentsSubtreeRoundTrip$' -v | grep -q -- '--- PASS: TestSubagentsSubtreeRoundTrip'
+  - grep -rl "func TestRelayAuthRejectsUnsignedOrInvalidReads(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestRelayAuthRejectsUnsignedOrInvalidReads$' -v | grep -q -- '--- PASS: TestRelayAuthRejectsUnsignedOrInvalidReads'
+  - grep -rl "func TestEndToEndSendInboxOpen_Claude(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestEndToEndSendInboxOpen_Claude$' -v | grep -q -- '--- PASS: TestEndToEndSendInboxOpen_Claude'
+  - grep -rl "func TestEndToEndSendInboxOpen_Codex(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestEndToEndSendInboxOpen_Codex$' -v | grep -q -- '--- PASS: TestEndToEndSendInboxOpen_Codex'
+  - grep -rl "func TestOpenDegradationMatrix(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestOpenDegradationMatrix$' -v | grep -q -- '--- PASS: TestOpenDegradationMatrix'
+  - grep -rl "func TestOpenRejectsUnsafeArchivePaths(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestOpenRejectsUnsafeArchivePaths$' -v | grep -q -- '--- PASS: TestOpenRejectsUnsafeArchivePaths'
+  - grep -rl "func TestJSONOutputSchemas(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestJSONOutputSchemas$' -v | grep -q -- '--- PASS: TestJSONOutputSchemas'
+  - grep -rl "func TestKeyPublicationAndFriendResolution(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestKeyPublicationAndFriendResolution$' -v | grep -q -- '--- PASS: TestKeyPublicationAndFriendResolution'
+  - grep -rl "func TestSendDefaultsToCwdProjectLatestSession(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestSendDefaultsToCwdProjectLatestSession$' -v | grep -q -- '--- PASS: TestSendDefaultsToCwdProjectLatestSession'
+  - grep -rl "func TestEnvelopeHeaderAndInternalSignature(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestEnvelopeHeaderAndInternalSignature$' -v | grep -q -- '--- PASS: TestEnvelopeHeaderAndInternalSignature'
+  - grep -rl "func TestOpenRejectsUnknownSender(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestOpenRejectsUnknownSender$' -v | grep -q -- '--- PASS: TestOpenRejectsUnknownSender'
+  - grep -rl "func TestRelayZeroKnowledgeStorageAndExpiry(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestRelayZeroKnowledgeStorageAndExpiry$' -v | grep -q -- '--- PASS: TestRelayZeroKnowledgeStorageAndExpiry'
+  - grep -rl "func TestCLIBehaviorContract(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestCLIBehaviorContract$' -v | grep -q -- '--- PASS: TestCLIBehaviorContract'
+  - grep -rl "func TestChallengeNonceExpiryAndReplay(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestChallengeNonceExpiryAndReplay$' -v | grep -q -- '--- PASS: TestChallengeNonceExpiryAndReplay'
+  - grep -rl "func TestRelayLimits(t \*testing.T)" --include='*_test.go' .
+  - go test ./... -run '^TestRelayLimits$' -v | grep -q -- '--- PASS: TestRelayLimits'
+
+## Accepted memory
+- Memory context: context/memory-context.md
+- Selected items: 1
+- Fresh: 1
+- Stale: 0
+- Unknown: 0
+- Stale memory may be outdated and must be verified.
+
+## Gate report
+- Gate status: needs_review
+- Execution attempt id: attempt_001
+- Execution exit code: 0
+- Validation command results:
+  - command_001: go build ./... (exit 0, timed out: false, result: gate/validation/command_001/result.json)
+  - command_002: go vet ./... (exit 0, timed out: false, result: gate/validation/command_002/result.json)
+  - command_003: go test ./... (exit 0, timed out: false, result: gate/validation/command_003/result.json)
+  - command_004: grep -q '"ECHO"' SPEC.md (exit 0, timed out: false, result: gate/validation/command_004/result.json)
+  - command_005: grep -q '0x01' SPEC.md (exit 0, timed out: false, result: gate/validation/command_005/result.json)
+  - command_006: ! grep -q 'ECHS' SPEC.md (exit 0, timed out: false, result: gate/validation/command_006/result.json)
+  - command_007: ! grep -q 'project_hint' SPEC.md (exit 0, timed out: false, result: gate/validation/command_007/result.json)
+  - command_008: grep -q '"version"' SPEC.md (exit 0, timed out: false, result: gate/validation/command_008/result.json)
+  - command_009: grep -q '"tool"' SPEC.md (exit 0, timed out: false, result: gate/validation/command_009/result.json)
+  - command_010: grep -q '"session_id"' SPEC.md (exit 0, timed out: false, result: gate/validation/command_010/result.json)
+  - command_011: grep -q '"project"' SPEC.md (exit 0, timed out: false, result: gate/validation/command_011/result.json)
+  - command_012: grep -q '"title"' SPEC.md (exit 0, timed out: false, result: gate/validation/command_012/result.json)
+  - command_013: grep -q 'sender_echo_id' SPEC.md (exit 0, timed out: false, result: gate/validation/command_013/result.json)
+  - command_014: grep -q 'sender_fingerprint' SPEC.md (exit 0, timed out: false, result: gate/validation/command_014/result.json)
+  - command_015: grep -q 'created_at' SPEC.md (exit 0, timed out: false, result: gate/validation/command_015/result.json)
+  - command_016: grep -q '"files"' SPEC.md (exit 0, timed out: false, result: gate/validation/command_016/result.json)
+  - command_017: grep -q '"path"' SPEC.md (exit 0, timed out: false, result: gate/validation/command_017/result.json)
+  - command_018: grep -q '"size"' SPEC.md (exit 0, timed out: false, result: gate/validation/command_018/result.json)
+  - command_019: grep -q '"sha256"' SPEC.md (exit 0, timed out: false, result: gate/validation/command_019/result.json)
+  - command_020: grep -q 'signature.sig' SPEC.md (exit 0, timed out: false, result: gate/validation/command_020/result.json)
+  - command_021: grep -q 'raw bytes' SPEC.md (exit 0, timed out: false, result: gate/validation/command_021/result.json)
+  - command_022: grep -qi 'transitiv' SPEC.md (exit 0, timed out: false, result: gate/validation/command_022/result.json)
+  - command_023: grep -q 'GET /challenge?fpr={fpr}' SPEC.md (exit 0, timed out: false, result: gate/validation/command_023/result.json)
+  - command_024: grep -q 'X-Echos-Fingerprint' SPEC.md (exit 0, timed out: false, result: gate/validation/command_024/result.json)
+  - command_025: grep -q 'X-Echos-Nonce' SPEC.md (exit 0, timed out: false, result: gate/validation/command_025/result.json)
+  - command_026: grep -q 'X-Echos-Signature' SPEC.md (exit 0, timed out: false, result: gate/validation/command_026/result.json)
+  - command_027: grep -q '201 Created' SPEC.md (exit 0, timed out: false, result: gate/validation/command_027/result.json)
+  - command_028: grep -q '401 Unauthorized' SPEC.md (exit 0, timed out: false, result: gate/validation/command_028/result.json)
+  - command_029: grep -q '410 Gone' SPEC.md (exit 0, timed out: false, result: gate/validation/command_029/result.json)
+  - command_030: grep -q '413 Request Entity Too Large' SPEC.md (exit 0, timed out: false, result: gate/validation/command_030/result.json)
+  - command_031: grep -q '429 Too Many Requests' SPEC.md (exit 0, timed out: false, result: gate/validation/command_031/result.json)
+  - command_032: grep -c 'os.IsNotExist(err)' internal/session/codex.go | grep -q '^2$' (exit 0, timed out: false, result: gate/validation/command_032/result.json)
+  - command_033: grep -q 'func rolloutsByID(sessionsRoot string) map\[string\]string {' internal/session/codex.go (exit 0, timed out: false, result: gate/validation/command_033/result.json)
+  - command_034: grep -c 'rollouts := rolloutsByID(sessionsRoot)' internal/session/codex.go | grep -q '^2$' (exit 0, timed out: false, result: gate/validation/command_034/result.json)
+  - command_035: grep -rl "func TestRateLimiterEvictsIdleEntries(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_035/result.json)
+  - command_036: go test ./... -run '^TestRateLimiterEvictsIdleEntries$' -v | grep -q -- '--- PASS: TestRateLimiterEvictsIdleEntries' (exit 0, timed out: false, result: gate/validation/command_036/result.json)
+  - command_037: grep -rl "func TestRateLimiterEnforcesCapacityBound(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_037/result.json)
+  - command_038: go test ./... -run '^TestRateLimiterEnforcesCapacityBound$' -v | grep -q -- '--- PASS: TestRateLimiterEnforcesCapacityBound' (exit 0, timed out: false, result: gate/validation/command_038/result.json)
+  - command_039: grep -rl "func TestIdentityExternalKeyUnencryptedReuse(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_039/result.json)
+  - command_040: go test ./... -run '^TestIdentityExternalKeyUnencryptedReuse$' -v | grep -q -- '--- PASS: TestIdentityExternalKeyUnencryptedReuse' (exit 0, timed out: false, result: gate/validation/command_040/result.json)
+  - command_041: grep -rl "func TestIdentityExternalKeyRejectsNonEd25519(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_041/result.json)
+  - command_042: go test ./... -run '^TestIdentityExternalKeyRejectsNonEd25519$' -v | grep -q -- '--- PASS: TestIdentityExternalKeyRejectsNonEd25519' (exit 0, timed out: false, result: gate/validation/command_042/result.json)
+  - command_043: grep -rl "func TestIdentityExternalKeySSHAgentFallback(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_043/result.json)
+  - command_044: go test ./... -run '^TestIdentityExternalKeySSHAgentFallback$' -v | grep -q -- '--- PASS: TestIdentityExternalKeySSHAgentFallback' (exit 0, timed out: false, result: gate/validation/command_044/result.json)
+  - command_045: grep -rl "func TestOpenResumeExec(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_045/result.json)
+  - command_046: go test ./... -run '^TestOpenResumeExec$' -v | grep -q -- '--- PASS: TestOpenResumeExec' (exit 0, timed out: false, result: gate/validation/command_046/result.json)
+  - command_047: grep -rl "func TestIdentityPublishFailureDegrades(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_047/result.json)
+  - command_048: go test ./... -run '^TestIdentityPublishFailureDegrades$' -v | grep -q -- '--- PASS: TestIdentityPublishFailureDegrades' (exit 0, timed out: false, result: gate/validation/command_048/result.json)
+  - command_049: grep -rl "func TestEnvelopeVerifyFilesRejectsMismatch(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_049/result.json)
+  - command_050: go test ./... -run '^TestEnvelopeVerifyFilesRejectsMismatch$' -v | grep -q -- '--- PASS: TestEnvelopeVerifyFilesRejectsMismatch' (exit 0, timed out: false, result: gate/validation/command_050/result.json)
+  - command_051: grep -rl "func TestSessionsDiscovery(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_051/result.json)
+  - command_052: go test ./... -run '^TestSessionsDiscovery$' -v | grep -q -- '--- PASS: TestSessionsDiscovery' (exit 0, timed out: false, result: gate/validation/command_052/result.json)
+  - command_053: grep -rl "func TestIdentityLifecycle(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_053/result.json)
+  - command_054: go test ./... -run '^TestIdentityLifecycle$' -v | grep -q -- '--- PASS: TestIdentityLifecycle' (exit 0, timed out: false, result: gate/validation/command_054/result.json)
+  - command_055: grep -rl "func TestEnvelopeRoundTrip(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_055/result.json)
+  - command_056: go test ./... -run '^TestEnvelopeRoundTrip$' -v | grep -q -- '--- PASS: TestEnvelopeRoundTrip' (exit 0, timed out: false, result: gate/validation/command_056/result.json)
+  - command_057: grep -rl "func TestSubagentsSubtreeRoundTrip(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_057/result.json)
+  - command_058: go test ./... -run '^TestSubagentsSubtreeRoundTrip$' -v | grep -q -- '--- PASS: TestSubagentsSubtreeRoundTrip' (exit 0, timed out: false, result: gate/validation/command_058/result.json)
+  - command_059: grep -rl "func TestRelayAuthRejectsUnsignedOrInvalidReads(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_059/result.json)
+  - command_060: go test ./... -run '^TestRelayAuthRejectsUnsignedOrInvalidReads$' -v | grep -q -- '--- PASS: TestRelayAuthRejectsUnsignedOrInvalidReads' (exit 0, timed out: false, result: gate/validation/command_060/result.json)
+  - command_061: grep -rl "func TestEndToEndSendInboxOpen_Claude(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_061/result.json)
+  - command_062: go test ./... -run '^TestEndToEndSendInboxOpen_Claude$' -v | grep -q -- '--- PASS: TestEndToEndSendInboxOpen_Claude' (exit 0, timed out: false, result: gate/validation/command_062/result.json)
+  - command_063: grep -rl "func TestEndToEndSendInboxOpen_Codex(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_063/result.json)
+  - command_064: go test ./... -run '^TestEndToEndSendInboxOpen_Codex$' -v | grep -q -- '--- PASS: TestEndToEndSendInboxOpen_Codex' (exit 0, timed out: false, result: gate/validation/command_064/result.json)
+  - command_065: grep -rl "func TestOpenDegradationMatrix(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_065/result.json)
+  - command_066: go test ./... -run '^TestOpenDegradationMatrix$' -v | grep -q -- '--- PASS: TestOpenDegradationMatrix' (exit 0, timed out: false, result: gate/validation/command_066/result.json)
+  - command_067: grep -rl "func TestOpenRejectsUnsafeArchivePaths(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_067/result.json)
+  - command_068: go test ./... -run '^TestOpenRejectsUnsafeArchivePaths$' -v | grep -q -- '--- PASS: TestOpenRejectsUnsafeArchivePaths' (exit 0, timed out: false, result: gate/validation/command_068/result.json)
+  - command_069: grep -rl "func TestJSONOutputSchemas(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_069/result.json)
+  - command_070: go test ./... -run '^TestJSONOutputSchemas$' -v | grep -q -- '--- PASS: TestJSONOutputSchemas' (exit 0, timed out: false, result: gate/validation/command_070/result.json)
+  - command_071: grep -rl "func TestKeyPublicationAndFriendResolution(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_071/result.json)
+  - command_072: go test ./... -run '^TestKeyPublicationAndFriendResolution$' -v | grep -q -- '--- PASS: TestKeyPublicationAndFriendResolution' (exit 0, timed out: false, result: gate/validation/command_072/result.json)
+  - command_073: grep -rl "func TestSendDefaultsToCwdProjectLatestSession(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_073/result.json)
+  - command_074: go test ./... -run '^TestSendDefaultsToCwdProjectLatestSession$' -v | grep -q -- '--- PASS: TestSendDefaultsToCwdProjectLatestSession' (exit 0, timed out: false, result: gate/validation/command_074/result.json)
+  - command_075: grep -rl "func TestEnvelopeHeaderAndInternalSignature(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_075/result.json)
+  - command_076: go test ./... -run '^TestEnvelopeHeaderAndInternalSignature$' -v | grep -q -- '--- PASS: TestEnvelopeHeaderAndInternalSignature' (exit 0, timed out: false, result: gate/validation/command_076/result.json)
+  - command_077: grep -rl "func TestOpenRejectsUnknownSender(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_077/result.json)
+  - command_078: go test ./... -run '^TestOpenRejectsUnknownSender$' -v | grep -q -- '--- PASS: TestOpenRejectsUnknownSender' (exit 0, timed out: false, result: gate/validation/command_078/result.json)
+  - command_079: grep -rl "func TestRelayZeroKnowledgeStorageAndExpiry(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_079/result.json)
+  - command_080: go test ./... -run '^TestRelayZeroKnowledgeStorageAndExpiry$' -v | grep -q -- '--- PASS: TestRelayZeroKnowledgeStorageAndExpiry' (exit 0, timed out: false, result: gate/validation/command_080/result.json)
+  - command_081: grep -rl "func TestCLIBehaviorContract(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_081/result.json)
+  - command_082: go test ./... -run '^TestCLIBehaviorContract$' -v | grep -q -- '--- PASS: TestCLIBehaviorContract' (exit 0, timed out: false, result: gate/validation/command_082/result.json)
+  - command_083: grep -rl "func TestChallengeNonceExpiryAndReplay(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_083/result.json)
+  - command_084: go test ./... -run '^TestChallengeNonceExpiryAndReplay$' -v | grep -q -- '--- PASS: TestChallengeNonceExpiryAndReplay' (exit 0, timed out: false, result: gate/validation/command_084/result.json)
+  - command_085: grep -rl "func TestRelayLimits(t \*testing.T)" --include='*_test.go' . (exit 0, timed out: false, result: gate/validation/command_085/result.json)
+  - command_086: go test ./... -run '^TestRelayLimits$' -v | grep -q -- '--- PASS: TestRelayLimits' (exit 0, timed out: false, result: gate/validation/command_086/result.json)
+- Change summary:
+  - changed files:
+    - SPEC.md
+    - internal/envelope/envelope_test.go
+    - internal/identity/identity_test.go
+    - internal/relayserver/ratelimit.go
+    - internal/relayserver/server.go
+    - internal/session/codex.go
+    - internal/session/session_test.go
+  - new files:
+    - cmd/echos/identity_publish_failure_test.go
+    - cmd/echos/open_resume_test.go
+    - internal/relayserver/ratelimit_test.go
+  - missing files:
+    - none
+
+## Existing manual review
+- Review status: pending
+- Current findings summary: findings=0 open=0 resolved=0 blocking_open=0
+- Existing findings:
+  - none
+- Existing resolutions:
+  - none
+- Proposal summary: pending=0 accepted=0 rejected=0
+- Existing proposals:
+  - none
+
+## Artifacts
+- Contract: contract/contract.json
+- Gate report: gate/gate-report.json
+- Review: review/review.json
+- Findings: review/findings.jsonl
+- Resolutions: review/resolutions.jsonl
+- Proposals: review/proposals.jsonl
+- Proposal decisions: review/proposal-decisions.jsonl
+- Execution result: execute/last-result.json
+
+## Reviewer guidance
+- This context is not complete semantic truth.
+- Inspect files before proposing findings.
+- Do not invent changes.
+- Do not approve automatically.
+- Report every issue you believe is likely real: use state=candidate for uncertain findings and drop only when trigger, evidence, and fix_direction cannot be filled concretely.

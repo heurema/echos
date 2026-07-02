@@ -35,8 +35,8 @@ context.
 ### End-to-end flow
 
 ```
-Bob:    echos id                          → echo:7f3ka9c2   (tells Alice in chat)
-Alice:  echos friend add bob echo:7f3ka9c2
+Bob:    echos id                          → 7f3a9c2b4d1e6f0a2c34   (tells Alice in chat)
+Alice:  echos friend add bob 7f3a9c2b4d1e6f0a2c34
         echos send bob                    → ✓ debate: "Fix acp timeout" → bob (24h)
 Bob:    echos open                        → from Alice ✓ · installed
                                           → resume: claude --resume a3f1c9
@@ -94,10 +94,10 @@ echos open [id] [--dir <path>] [--json] [--allow-unknown] [--resume]
 ### Errors (contract examples)
 
 ```
-echos send bob    → no friend "bob" — run: echos friend add bob echo:…
+echos send bob    → no friend "bob" — run: echos friend add bob <echo-id>
 echos send bob    → no sessions in this dir; recent: [list] — echos send bob <id>
 echos open        → inbox is empty
-echos open        → sender unknown (echo:9f3a…) — add friend or pass --allow-unknown
+echos open        → sender unknown (9f3a…) — add friend or pass --allow-unknown
 ```
 
 ---
@@ -124,7 +124,7 @@ cmd/echos-relay          server: mailbox store with TTL
   - `golang.org/x/crypto/ssh` — sign/verify the sender;
   - `net/http` (stdlib) — client and server, no frameworks;
   - `go.etcd.io/bbolt` — relay store with a TTL sweeper;
-  - argv — stdlib `flag`; no interactivity, no need for cobra.
+  - argv — `github.com/alecthomas/kong`; no interactivity, no TUI dependency.
 
 ### Identity
 
@@ -133,9 +133,10 @@ cmd/echos-relay          server: mailbox store with TTL
   break your echos identity, and compromising the echos key must not grant
   server access.
 - `--key ~/.ssh/id_ed25519` — an option to reuse an existing SSH key.
-- **echo-id = a short fingerprint of the public key** (e.g. `echo:7f3ka9c2`)
-  — self-authenticating, as in SSH/Signal. Names ("bob") are local aliases in
-  the address book and never go on the wire.
+- **echo-id = the first 20 hex characters (80 bits) of the SHA-256
+  fingerprint of the public key's SSH wire-format bytes** — self-authenticating,
+  as in SSH/Signal. Names ("bob") are local aliases in the address book and
+  never go on the wire.
 - On identity creation the pubkey is published to the relay → `friend add`
   fetches the key by echo-id and **verifies it hashes to that same
   fingerprint** — the relay has nothing to swap, it is irrelevant to trust.
@@ -156,14 +157,18 @@ cmd/echos-relay          server: mailbox store with TTL
 ## 4. Contract 1: Envelope (parcel format)
 
 ```
-[magic "ECHS" | version u8 = 1]
+[magic "ECHO" | version u8 = 1]
 [age ciphertext to the recipient's pubkey:
     tar.gz
       ├── manifest.json
-      ├── files/…                  # native session bytes, as-is
-      └── signature                # ssh signature over manifest+files by the sender's key
+      ├── signature.sig            # ssh signature over manifest.json's raw bytes, by the sender's key
+      └── <native session files, at their adapter-relative paths, as-is>
 ]
 ```
+
+The header is 5 bytes: the ASCII magic `"ECHO"` followed by a single version
+byte (`0x01` for v1). It is readable without decrypting anything — everything
+after it is the age ciphertext.
 
 **The sender and their signature are inside the ciphertext.** By construction
 the relay does not know who is sending. The recipient learns `from Alice ✓`
@@ -173,20 +178,35 @@ after decryption, by checking the signature against their address book.
 
 ```json
 {
-  "echos": 1,
+  "version": 1,
   "tool": "claude",
   "session_id": "a3f1c9-…",
+  "project": "/Users/alice/repos/demo",
   "title": "Fix acp backend timeout",
-  "project_hint": "personal/debate",
-  "created": "2026-07-01T20:15:00Z",
-  "sender": {"echo_id": "echo:ab12cd9f", "pubkey": "ssh-ed25519 AAAA…"},
-  "files": [{"path": "a3f1c9.jsonl", "role": "transcript"},
-            {"path": "a3f1c9/subagents/…", "role": "aux"}]
+  "sender_echo_id": "ab12cd9f0123456789ab",
+  "sender_fingerprint": "ab12cd9f0123456789ab12cd9f0123456789ab12cd9f0123456789ab12cd9f",
+  "created_at": "2026-07-01T20:15:00Z",
+  "files": [
+    {"path": "a3f1c9.jsonl", "size": 48213, "sha256": "…"},
+    {"path": "a3f1c9/subagents/agent-1.jsonl", "size": 991, "sha256": "…"}
+  ]
 }
 ```
 
 Extension without breakage: new fields (`git_rev`, `scrubbed`) are ignored by
 old clients; an unknown `tool` is handled by degradation (see §6).
+
+**Signing and integrity.** `signature.sig` is an ssh signature computed over
+`manifest.json`'s raw serialized bytes only — it does not sign the native
+files directly. Each file is bound in *transitively*: its exact bytes are
+SHA-256-hashed into that file's `files[].sha256` entry inside the signed
+manifest, so altering a packaged file changes the hash that no longer
+matches what the signature covers. On open, `VerifyFiles` recomputes and
+checks every unpacked file's size and SHA-256 against its manifest entry
+(and rejects any file present on disk but absent from the manifest);
+`VerifySignature` independently checks `signature.sig` against
+`manifest.json`'s raw bytes. The two checks are separate steps so a caller
+(e.g. inbox listing) can use one without the other.
 
 **Transcripts are not normalized.** Resumability is sacred: `claude --resume`
 requires its exact jsonl byte-for-byte. Format conversion is a lossy
@@ -205,21 +225,44 @@ not our concern.
 ## 5. Contract 2: Relay API
 
 Mailbox = fingerprint of the recipient's public key. No accounts, passwords,
-or sessions.
+or long-lived sessions — reads are authenticated per request via a signed
+challenge.
 
 ```
-POST /keys                     body: pubkey                 → 201            # publish on init
-GET  /keys/{fpr}                                            → pubkey         # friend discovery
-POST /mailbox/{fpr}            body: envelope  ?ttl=24h     → {"id": "…"}    # drop off
-GET  /mailbox/{fpr}            auth: challenge signature    → [{id, size, created, expires}]
-GET  /blob/{id}                auth: challenge signature    → envelope       # 410 if expired
+POST /keys                       body: {fingerprint, public_key}  → 201 Created  # publish on init (200 OK if re-registering the same key; 409 Conflict if a different key)
+GET  /keys/{fpr}                                                  → 200 OK {fingerprint, public_key}    # friend discovery
+GET  /challenge?fpr={fpr}                                         → 200 OK {nonce, expires_at}
+POST /mailbox/{fpr}              body: envelope bytes             → 201 Created {id, ttl, expires_at}   # drop off
+GET  /mailbox/{fpr}              auth: challenge signature        → 200 OK [{id, size, received_at, expires_at}]
+GET  /blob/{id}                  auth: challenge signature        → 200 OK envelope bytes                # 410 Gone if expired
 ```
 
-- **Reading a mailbox** — sign a challenge with the private key; the relay
-  verifies it against the published pubkey for that fpr. Anyone can drop into
-  any mailbox (spam is bounded by rate-limit and size).
-- TTL: default 24h, max set by the server. A sweeper deletes expired items.
-- Blob size limit, rate-limit on POST.
+- **Reading a mailbox or a blob** — `GET /challenge?fpr={fpr}` issues a
+  short-lived, single-use nonce bound to that fingerprint. The caller signs
+  the decoded nonce with their private key and re-presents it on the read
+  request via three headers:
+  - `X-Echos-Fingerprint` — the caller's fingerprint.
+  - `X-Echos-Nonce` — the base64-encoded nonce, exactly as issued.
+  - `X-Echos-Signature` — a base64-encoded ssh signature (wire format) of
+    the decoded nonce, by the fingerprint's registered key.
+
+  The relay verifies the signature against the published key for that
+  fingerprint, that the nonce has not expired or already been consumed, and
+  that the caller's fingerprint matches the mailbox or blob being read.
+  Anyone can drop into any mailbox (spam is bounded by rate-limit and size).
+- TTL: a fixed per-deployment default (24h), set server-side — not
+  caller-selectable per request. A sweeper deletes expired items.
+- Blob size limit (default 25MiB); rate-limit on `POST /keys` and
+  `POST /mailbox/{fpr}` (default 10 requests/minute per source IP).
+- Status codes: `201 Created` on a successful `POST /keys` or
+  `POST /mailbox/{fpr}`; `401 Unauthorized` when challenge authentication
+  fails — missing headers, an unknown/expired/replayed nonce, a bad
+  signature, or authenticating for a mailbox/blob that is not the caller's;
+  `410 Gone` on `GET /blob/{id}` once the blob's TTL has elapsed;
+  `413 Request Entity Too Large` when a posted envelope exceeds the max
+  blob size; `429 Too Many Requests` when the per-IP rate limit is
+  exceeded; `409 Conflict` on `POST /keys` when the fingerprint is already
+  registered with a different public key.
 - The relay sees: mailbox fpr, size, time. It does not see: content, sender,
   project.
 - Hosting: a single Go binary on any VPS; the same contract can sit on

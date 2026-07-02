@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_020",
+  "command": "grep -q 'signature.sig' SPEC.md",
+  "started_at": "2026-07-02T13:22:07.22465Z",
+  "finished_at": "2026-07-02T13:22:07.228388Z",
+  "duration_ms": 3,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_020/stdout.log",
+  "stderr": "gate/validation/command_020/stderr.log"
+}

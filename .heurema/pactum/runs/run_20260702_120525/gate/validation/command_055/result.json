@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_055",
+  "command": "grep -rl \"func TestEnvelopeRoundTrip(t \\*testing.T)\" --include='*_test.go' .",
+  "started_at": "2026-07-02T13:22:15.196121Z",
+  "finished_at": "2026-07-02T13:22:15.223397Z",
+  "duration_ms": 27,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_055/stdout.log",
+  "stderr": "gate/validation/command_055/stderr.log"
+}

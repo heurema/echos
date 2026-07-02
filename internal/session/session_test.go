@@ -55,7 +55,8 @@ func TestSessionsDiscovery(t *testing.T) {
 	rolloutPath := filepath.Join(home, ".codex", "sessions", filepath.FromSlash(rolloutRel))
 	writeFile(t, rolloutPath, `{"timestamp":"2026-07-02T09:53:36.435Z","type":"session_meta","payload":{"id":"`+codexID+`","cwd":"`+cwd+`"}}`+"\n")
 	indexPath := filepath.Join(home, ".codex", "session_index.jsonl")
-	writeFile(t, indexPath, `{"id":"`+codexID+`","thread_name":"Fix acp timeout","updated_at":"2026-07-02T12:00:00.000000Z"}`+"\n")
+	codexUpdated := newer.Add(time.Hour).UTC().Format(time.RFC3339Nano)
+	writeFile(t, indexPath, `{"id":"`+codexID+`","thread_name":"Fix acp timeout","updated_at":"`+codexUpdated+`"}`+"\n")
 
 	sessions, err = DiscoverAll()
 	if err != nil {

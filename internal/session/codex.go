@@ -37,9 +37,9 @@ var uuidRE = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0
 
 // rolloutsByID walks the sessions root once and maps session id -> path
 // relative to sessionsRoot, keyed by the uuid embedded in each filename.
-func rolloutsByID(sessionsRoot string) (map[string]string, error) {
+func rolloutsByID(sessionsRoot string) map[string]string {
 	found := map[string]string{}
-	err := filepath.WalkDir(sessionsRoot, func(path string, d fs.DirEntry, err error) error {
+	filepath.WalkDir(sessionsRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil // tolerate unreadable entries
 		}
@@ -57,10 +57,7 @@ func rolloutsByID(sessionsRoot string) (map[string]string, error) {
 		found[id] = filepath.ToSlash(rel)
 		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	return found, nil
+	return found
 }
 
 func (CodexAdapter) Discover() ([]Session, error) {
@@ -79,14 +76,7 @@ func (CodexAdapter) Discover() ([]Session, error) {
 	defer f.Close()
 
 	sessionsRoot := filepath.Join(home, "sessions")
-	rollouts, err := rolloutsByID(sessionsRoot)
-	if err != nil {
-		if os.IsNotExist(err) {
-			rollouts = map[string]string{}
-		} else {
-			return nil, err
-		}
-	}
+	rollouts := rolloutsByID(sessionsRoot)
 
 	var sessions []Session
 	sc := bufio.NewScanner(f)
@@ -155,10 +145,7 @@ func (CodexAdapter) Package(s Session) ([]File, error) {
 		return nil, err
 	}
 	sessionsRoot := filepath.Join(home, "sessions")
-	rollouts, err := rolloutsByID(sessionsRoot)
-	if err != nil {
-		return nil, err
-	}
+	rollouts := rolloutsByID(sessionsRoot)
 	rel, ok := rollouts[s.ID]
 	if !ok {
 		return nil, fmt.Errorf("codex session %s: rollout file not found", s.ID)

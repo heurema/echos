@@ -1,0 +1,20 @@
+{
+  "schema": "pactum.run.v1alpha1",
+  "run_id": "run_20260702_120525",
+  "status": "contract_approved",
+  "task": "Address echos advisory tech-debt from run_20260702_085315 code review: sync SPEC.md with the shipped wire format, bound the relay rate-limiter memory, remove dead code in codex.go, and add tests for the untested --key / --resume / publish-failure / verify-mismatch branches — without changing the Envelope v1 wire contract or CLI behavior.",
+  "created_at": "2026-07-02T12:05:25.74121Z",
+  "updated_at": "2026-07-02T13:02:00.241674Z",
+  "repo_root": ".",
+  "workspace": ".heurema/pactum",
+  "artifacts": {
+    "task": "task.md",
+    "repo_context": "context/repo-context.md",
+    "executor_context": "context/executor-context.md",
+    "contract_json": "contract/contract.json",
+    "contract_md": "contract/contract.md",
+    "prompt": "contract/prompt.md",
+    "prompt_manifest": "contract/prompt-manifest.json",
+    "approval": "contract/approval.json"
+  }
+}

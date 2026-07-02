@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_021",
+  "command": "grep -q 'raw bytes' SPEC.md",
+  "started_at": "2026-07-02T13:22:07.228531Z",
+  "finished_at": "2026-07-02T13:22:07.232003Z",
+  "duration_ms": 3,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_021/stdout.log",
+  "stderr": "gate/validation/command_021/stderr.log"
+}
