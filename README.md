@@ -79,7 +79,7 @@ GET  /blob/{id}               fetch envelope  (challenge-signed) · 410 once exp
 
 ## Configuration
 
-Client state in `~/.config/echos/`: `identity` (0600), `identity.pub`, `friends.json`, `config.json`. Relay URL: `$ECHOS_RELAY` → `config.json` → `http://localhost:8080`.
+Client state in `~/.config/echos/`: `identity` (0600), `identity.pub`, `friends.json`, `config.json`. Relay URL: `$ECHOS_RELAY` → `config.json` → `https://echos.heurema.dev` (the hosted default).
 
 Relay flags (env: `ECHOS_RELAY_*`):
 

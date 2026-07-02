@@ -6,14 +6,14 @@ import (
 	"path/filepath"
 )
 
-const defaultRelayURL = "http://localhost:8080"
+const defaultRelayURL = "https://echos.heurema.dev"
 
 type config struct {
 	RelayURL string `json:"relay_url"`
 }
 
 // RelayURL resolves the relay base URL: $ECHOS_RELAY, else
-// ~/.config/echos/config.json's relay_url, else the localhost default.
+// ~/.config/echos/config.json's relay_url, else the hosted default.
 func RelayURL(dir string) string {
 	if v := os.Getenv("ECHOS_RELAY"); v != "" {
 		return v
