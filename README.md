@@ -69,8 +69,6 @@ GET  /mailbox/{fpr}           list inbox      (challenge-signed)
 GET  /blob/{id}               fetch envelope  (challenge-signed) · 410 once expired
 ```
 
-Crypto is [`filippo.io/age`](https://github.com/FiloSottile/age) + `golang.org/x/crypto/ssh` — nothing hand-rolled. CLI: [`kong`](https://github.com/alecthomas/kong); relay: stdlib `net/http` + [`bbolt`](https://github.com/etcd-io/bbolt).
-
 ## Security
 
 - End-to-end encrypted; the relay stores only ciphertext keyed by recipient fingerprint.
