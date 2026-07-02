@@ -1,0 +1,9 @@
+{
+  "schema": "pactum.workspace.v1alpha1",
+  "tool": "pactum",
+  "tool_version": "0.1.0",
+  "repo_root": ".",
+  "initialized_at": "2026-07-02T08:51:13.444627Z",
+  "updated_at": "2026-07-02T08:51:13.444627Z",
+  "status": "initialized"
+}

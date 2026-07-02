@@ -1,0 +1,38 @@
+version: v1alpha1
+agents:
+  - name: codex-high
+    model: gpt-5.5
+    effort: high
+  - name: codex-xhigh
+    model: gpt-5.5
+    effort: xhigh
+  - name: claude-sonnet-5
+    model: claude-sonnet-5
+    effort: high
+  - name: opus-xhigh
+    model: claude-opus-4-8
+    effort: xhigh
+map:
+  max_file_bytes: 500000
+  code_index: auto
+out_of_scope: block
+pipeline:
+  clarify:
+    loop:
+      max: 3
+      patience: 0
+      settle: 0
+  execute:
+    by: claude-sonnet-5
+  contract_review:
+    by: codex-xhigh
+    loop:
+      max: 4
+      patience: 2
+      settle: 1
+  code_review:
+    by: opus-xhigh
+    loop:
+      max: 10
+      patience: 2
+      settle: 1

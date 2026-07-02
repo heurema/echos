@@ -1,0 +1,20 @@
+{
+  "schema": "pactum.run.v1alpha1",
+  "run_id": "run_20260702_085315",
+  "status": "contract_approved",
+  "task": "Build echos: an agent-first CLI to share coding-agent sessions (Claude Code / Codex) end-to-end encrypted between friends, per SPEC.md",
+  "created_at": "2026-07-02T08:53:15.423109Z",
+  "updated_at": "2026-07-02T10:13:55.929459Z",
+  "repo_root": ".",
+  "workspace": ".heurema/pactum",
+  "artifacts": {
+    "task": "task.md",
+    "repo_context": "context/repo-context.md",
+    "executor_context": "context/executor-context.md",
+    "contract_json": "contract/contract.json",
+    "contract_md": "contract/contract.md",
+    "prompt": "contract/prompt.md",
+    "prompt_manifest": "contract/prompt-manifest.json",
+    "approval": "contract/approval.json"
+  }
+}
