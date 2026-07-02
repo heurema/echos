@@ -2,47 +2,71 @@
 
 Share a running coding-agent session (Claude Code / Codex) with a friend — end-to-end encrypted through an ephemeral zero-knowledge relay. One command to send, one to receive. The transcript arrives byte-identical, so `claude --resume` keeps the full history.
 
+You hand a teammate not "here's a branch, figure it out" but the whole live context of your session — the conversation, the decisions, the reasoning — and they pick up exactly where you left off.
+
+**Hosted relay: https://echos.heurema.dev** — the CLI uses it by default, so there's nothing to run.
+
 ```
 Alice:  echos send bob            → ✓ debate: "Fix acp timeout" → bob (24h)
 Bob:    echos open                → from Alice ✓ · installed
                                    → resume: claude --resume a3f1c9
 ```
 
-The CLI is agent-first: non-interactive, `--json` on every command, errors are ready-to-run next commands, exit codes `0` ok / `1` error / `2` needs clarification.
+No links to copy, no files to upload. Alice runs one command; the session lands in Bob's inbox.
 
-## Quickstart
+## Install
 
 ```sh
-go build -o echos       ./cmd/echos
-go build -o echos-relay ./cmd/echos-relay
-
-./echos-relay                                # relay on :8080
-export ECHOS_RELAY=http://127.0.0.1:8080
+curl -fsSL https://raw.githubusercontent.com/heurema/echos/main/install.sh | sh
 ```
 
-```sh
-# Bob
-echos id                                     # → 19b9ff59285cd393414e
+Installs the `echos` binary to `~/.local/bin` (override with `ECHOS_INSTALL_DIR`). Or with Go:
 
-# Alice
+```sh
+go install github.com/heurema/echos/cmd/echos@latest
+```
+
+## Try it
+
+The CLI talks to the hosted relay out of the box — no server to run.
+
+**Bob** creates an identity and shares his echo-id (a short fingerprint of his key):
+
+```sh
+echos id                 # → 19b9ff59285cd393414e   (send this to Alice, any channel)
+```
+
+**Alice** adds Bob and sends the latest session in her current project:
+
+```sh
 echos friend add bob 19b9ff59285cd393414e
-echos send bob                               # newest session in this directory
-
-# Bob, inside his checkout of the project
-echos inbox
-echos open                                   # → resume: claude --resume <id>
+echos send bob           # defaults to the newest session in this directory
 ```
+
+**Bob**, inside his checkout of the project, receives it:
+
+```sh
+echos inbox              # 1  from alice   debate   "Fix acp timeout"   2m ago
+echos open               # verifies the sender, installs the transcript,
+                         # prints:  claude --resume a3f1c9
+```
+
+The transcript arrives **byte-identical** to Alice's original. For a two-way channel, Bob adds Alice too (`echos friend add alice <her-echo-id>`); a sender who isn't in your friends is refused unless you pass `--allow-unknown`.
+
+The CLI is **agent-first**: non-interactive, `--json` on every command, errors are ready-to-run next commands, exit codes `0` ok / `1` error / `2` needs clarification. In practice it's two sentences to your coding agent — *"send this session to Bob"* and *"check my inbox, pick it up."*
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `echos id [--key <path>]` | Print your echo-id; identity created lazily (fresh ed25519, or reuse an SSH key via `--key`). |
+| `echos id [--key <path>]` | Print your echo-id; identity created lazily (fresh ed25519, or reuse an SSH key via `--key`) and (re)published to the relay. |
 | `echos friend add <name> <echo-id>` | Fetch a friend's key from the relay, verify it hashes to their echo-id, store under a local alias. |
 | `echos sessions [--tool claude\|codex] [--n N]` | List local sessions, newest first. |
 | `echos send <friend> [<session-id>]` | Encrypt a session to a friend and drop it in their mailbox. Defaults to the newest session in the current directory's project. |
 | `echos inbox` | List pending items addressed to you. |
 | `echos open [<id>] [--dir <path>] [--allow-unknown] [--resume]` | Decrypt, verify the sender, install; prints the resume command (`--resume` runs it). Defaults to the newest inbox item. |
+
+Every command accepts `--json`, never reads stdin.
 
 ## How it works
 
@@ -79,18 +103,17 @@ GET  /blob/{id}               fetch envelope  (challenge-signed) · 410 once exp
 
 ## Configuration
 
-Client state in `~/.config/echos/`: `identity` (0600), `identity.pub`, `friends.json`, `config.json`. Relay URL: `$ECHOS_RELAY` → `config.json` → `https://echos.heurema.dev` (the hosted default).
+Client state in `~/.config/echos/`: `identity` (0600), `identity.pub`, `friends.json`, `config.json`. Relay URL resolves as `$ECHOS_RELAY` → `config.json` → `https://echos.heurema.dev` (the hosted default).
 
-Relay flags (env: `ECHOS_RELAY_*`):
+## Self-hosting the relay
 
-| Flag | Default |
-|---|---|
-| `-addr` | `:8080` |
-| `-db` | `echos-relay.db` |
-| `-ttl` | `24h` |
-| `-max-blob-size` | 25 MiB |
-| `-rate-limit` | 10 req/min per IP on writes |
-| `-sweep-interval` | `1m` |
+Prefer your own relay? Run the second binary and point the CLI at it:
+
+```sh
+go build -o echos-relay ./cmd/echos-relay
+./echos-relay                                # :8080; -ttl, -max-blob-size, -rate-limit, -db
+export ECHOS_RELAY=http://127.0.0.1:8080
+```
 
 ## Development
 
