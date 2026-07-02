@@ -1,6 +1,13 @@
 # Executor Prompt
 
-This is a contract-draft placeholder. Run `pactum prompt build` after the contract is approved to build the executor prompt for `pactum execute`.
+This prompt is prepared from an approved Pactum contract.
+This prompt is prepared for the selected built-in agent when `pactum execute run` is used.
+Pactum records execution artifacts and validates contract and memory boundaries before execution.
+
+## Contract status
+- Run: run_20260702_085315
+- Approval: approved
+- Contract hash: 1de3edbb4f937455ead7352eec2d708b118b5b4c1af4dc72e5bf1226ffa5616b
 
 ## Goal
 Deliver echos v0 per SPEC.md: an agent-first CLI that shares a running coding-agent session (Claude Code / Codex) with a friend end-to-end encrypted through an ephemeral zero-knowledge relay — one command to send, one to receive. Honor the two versioned contracts (Envelope v1, Relay API) and the core principles: agent-first / no interactivity, courier-not-translator (native transcript bytes), zero-knowledge relay, ephemerality.
@@ -67,5 +74,66 @@ Deliver echos v0 per SPEC.md: an agent-first CLI that shares a running coding-ag
 - sh -c 'grep -rl "func TestChallengeNonceExpiryAndReplay(t \*testing.T)" --include="*_test.go" . | grep -q . && go test ./... -run "^TestChallengeNonceExpiryAndReplay$" -v | grep -q -- "--- PASS: TestChallengeNonceExpiryAndReplay"'
 - sh -c 'grep -rl "func TestRelayLimits(t \*testing.T)" --include="*_test.go" . | grep -q . && go test ./... -run "^TestRelayLimits$" -v | grep -q -- "--- PASS: TestRelayLimits"'
 
+## Assumptions
+- Go 1.26 toolchain. Cryptography is never hand-rolled: envelope encryption is delegated entirely to filippo.io/age + filippo.io/age/agessh (encrypt to the recipient's ed25519/SSH key, stream large transcripts), and all key handling, sender signatures, fingerprints, and optional ssh-agent access go through golang.org/x/crypto/ssh — both used as libraries, never shelling out to the age or ssh-keygen binaries.
+- The CLI is built on github.com/alecthomas/kong (consistent with the sibling pactum/debate projects and already in the module cache), superseding the tentative stdlib flag mention in SPEC.md; kong provides declarative struct-tag commands, generated --help that doubles as agent documentation, and explicit exit-code control for the 0/1/2 contract.
+- The relay uses only the Go stdlib net/http (1.22 method+wildcard ServeMux, no external router) plus go.etcd.io/bbolt as a single-file store with a sweeper goroutine for TTL (bbolt has no native expiry) and golang.org/x/time/rate for POST rate-limiting (default 10 requests/minute per source IP, configurable), with a default max blob size of 25MiB enforced on POST /mailbox/{fpr} (HTTP 413 when exceeded, configurable); the envelope container uses stdlib archive/tar + compress/gzip, and blob ids come from crypto/rand + encoding/base32 (no UUID dependency).
+- The challenge-signature auth protocol for GET /mailbox/{fpr} and GET /blob/{id} works as: the client first fetches a short-lived, single-use challenge nonce from the relay (GET /challenge?fpr={fpr}), signs that nonce with the requester's ed25519 private key, and re-issues the GET request carrying the fingerprint, nonce, and signature as request headers (X-Echos-Fingerprint, X-Echos-Nonce, X-Echos-Signature); the relay validates the signature against the public key on file for that fingerprint, rejects any nonce older than a default 60s TTL or already consumed, and only the fingerprint that owns the resource (the mailbox owner for GET /mailbox, the blob's recipient for GET /blob) can authenticate successfully.
+- On-disk session layouts match what was observed on this machine: Claude per-cwd-encoded project directories containing <uuid>.jsonl (plus an optional <uuid>/subagents/ subtree), and Codex sessions under ~/.codex/sessions/ indexed by ~/.codex/session_index.jsonl entries of {id, thread_name, updated_at}.
+- The relay is a separate single Go binary; in development it runs on localhost:8080. Clients resolve the relay URL in this priority order: the ECHOS_RELAY environment variable if set, else the value in ~/.config/echos/config.json if present, else an implicit default of http://localhost:8080 — no interactive prompt is ever shown to configure it.
+- echo-id fingerprints are collision-resistant enough for manual out-of-band exchange, and the human-readable name is purely a local alias stored in friends.json.
+- Recipients run echos open inside their own checkout of the project (or pass --dir) because Claude Code resume is bound to the encoded project path.
+- Codex sessions are resumed via codex resume <id> (mirroring claude --resume <id>), consistent with the Codex CLI's session_index.jsonl id field.
+- Each tool adapter defines and validates its own set of safe, adapter-owned relative destination paths (e.g. Claude's <uuid>.jsonl and <uuid>/subagents/*, Codex's session rollout file); on unpack and before install, echos rejects any packaged file path that escapes the adapter's expected layout (absolute paths, .., symlinks, or paths outside the allowed prefixes), refusing to install rather than writing outside the intended destination.
+- Packaged session files are untrusted input: the envelope may contain arbitrary relative paths, so `open`/Install must sanitize entries (no absolute paths, no `..` escape) and confine writes to adapter-owned locations before touching the filesystem; the adapter, not the archive, decides the destination layout.
+- If `echos id` (or any command that lazily creates an identity) successfully generates and persists the local ed25519 key but the subsequent POST /keys publication to the relay fails (e.g. relay unreachable or returns an error), identity creation still succeeds and the command exits 0, printing the echo-id together with a warning that key publication failed and instructing the user to re-run the idempotent `echos id` once the relay is reachable to retry publication; friends cannot resolve this echo-id via GET /keys/{fpr} until publication succeeds, but this does not block local-only usage such as `echos sessions` or `echos open`.
+- The optional `--key` flag for identity creation accepts only unencrypted (no passphrase) ed25519 SSH private keys at the given path, read directly via golang.org/x/crypto/ssh; per the no-interactivity rule, echos never prompts for a passphrase — if the key file is passphrase-protected, echos attempts ssh-agent (when SSH_AUTH_SOCK is set) as a fallback signer and otherwise fails fast with an error naming the key path and instructing the user to supply an unencrypted key or load it into ssh-agent; non-ed25519 key types (rsa, ecdsa, etc.) are rejected with an explicit unsupported-key-type error since only ed25519 is supported by the age/agessh signing path.
+- `echos inbox`'s per-item fields beyond relay metadata (from_fingerprint, from_name, tool) require decrypting each pending blob: because the zero-knowledge relay's GET /mailbox/{fpr} response carries only {id, size, received_at, expires_at} and sender identity/tool live inside the age ciphertext's manifest.json, `echos inbox` transparently fetches each blob via GET /blob/{id} (authenticated with the same challenge-signature flow as any other read) and age-decrypts it with the local identity's private key to populate from_fingerprint and tool, resolving from_name via a friends.json lookup on that fingerprint; this decryption is solely for listing display, is independent of and does not perform the sender-signature verification, unknown-sender rejection, or file installation that `echos open` performs, and every pending item must be individually decryptable by the local identity (since each was encrypted to it) for `echos inbox` to succeed without error.
+
+## Clarifications
+- None
+
 ## Project context
+- Executor context: context/executor-context.md
 - Accepted memory context: context/memory-context.md
+
+## Accepted memory
+
+Memory context:
+- context/memory-context.md
+
+Selected memory:
+- total: 0
+- fresh: 0
+- stale: 0
+- unknown: 0
+
+Items:
+- none
+
+Rules:
+- Accepted memory is context, not semantic truth.
+- Stale memory may be outdated; verify before using.
+- Inspect current source files before relying on memory.
+- Do not implement from memory alone.
+
+## Instructions for future executor
+- Follow the approved contract.
+- Do not implement out-of-scope work.
+- Search before creating new code.
+- Prefer existing exported functions and types when applicable.
+- If the contract is ambiguous, stop and request clarification.
+- Use the listed validation commands as expected checks.
+- Pactum gate can run approved validation commands after execution.
+
+## House style
+- Match the surrounding code: idiom, naming, comment density.
+- Comment only where the code is not self-explanatory; do not narrate the obvious.
+- Search for and reuse existing helpers before writing new ones.
+- Keep the diff small and focused: change only what the contract requires.
+- Simplicity first: no enterprise patterns for simple problems, question every new abstraction, no premature generalization or optimization.
+- Over-engineering DON'Ts: wrappers that add nothing, factories or abstractions for a single case, unused extension points, dual implementations where the old path has no callers, silent fallbacks that hide failures.
+- No dead code, no commented-out code, no unused parameters.
+- Handle errors per the project's existing convention; no silent failures.
+- Tests verify behavior, not implementation details, and cover error paths.
+- Fake-test DON'Ts: always-pass tests, hardcoded-value checks, assertions on mock behavior instead of the code under test, ignored errors, commented-out cases.

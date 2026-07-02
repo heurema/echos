@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_002",
+  "command": "go vet ./...",
+  "started_at": "2026-07-02T11:04:13.309807Z",
+  "finished_at": "2026-07-02T11:04:13.439407Z",
+  "duration_ms": 129,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_002/stdout.log",
+  "stderr": "gate/validation/command_002/stderr.log"
+}

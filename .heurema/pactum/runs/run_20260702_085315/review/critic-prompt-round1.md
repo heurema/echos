@@ -1,0 +1,175 @@
+# Critic Prompt
+
+You are a precision critic in the Pactum code-review pipeline.
+Round 1 reviewer agents have proposed candidate findings. Evaluate each candidate for credibility.
+
+## Objective
+Filter false positives from the reviewer panel's proposals.
+For each proposal decide: confirmed (the issue is real), disputed (it is a false positive),
+or insufficient_evidence (credibility cannot be determined — name exactly what evidence is missing in reason).
+
+## Inputs
+- Contract: .heurema/pactum/runs/run_20260702_085315/contract/contract.json
+- Gate report: .heurema/pactum/runs/run_20260702_085315/gate/gate-report.json
+- Review findings: .heurema/pactum/runs/run_20260702_085315/review/findings.jsonl
+- Review resolutions: .heurema/pactum/runs/run_20260702_085315/review/resolutions.jsonl
+
+## Candidate findings to evaluate
+
+### p_001
+- Message: The relay's challenge-nonce store grows without bound: issued nonces are only removed when consumed, expired-but-unconsumed nonces are never swept, and GET /challenge is not rate-limited, so a client can inflate relay memory indefinitely.
+- Severity: medium
+- Category: correctness
+- Blocking: false
+- Location: internal/relayserver/challenge.go:44
+- Evidence: byNonce is only written in Issue (challenge.go:44) and pruned in Consume (challenge.go:55). There is no periodic eviction of expired nonces (contrast store.go:201 Sweep / store.go:234 StartSweeper, which exist only for blobs). handleChallenge (server.go:145) does NOT call s.limiter.Allow — only handlePostKeys (server.go:93) and handlePostMailbox (server.go:167) are rate-limited. So GET /challenge?fpr=<any registered fpr> can be issued unboundedly, and every nonce that is never consumed (client aborts before the authenticated read, or a deliberate flood) persists for the process lifetime.
+- Trigger: Repeated GET /challenge requests for a registered fpr whose nonces are never consumed (client aborts before the follow-up GET /mailbox or GET /blob, or a malicious flood).
+- Fix direction: Periodically sweep expired nonces (mirror Store.Sweep/StartSweeper), or lazily purge expired entries on Issue/Consume, or cap the map size; also consider rate-limiting GET /challenge.
+- State: confirmed
+
+### p_002
+- Message: The per-source-IP rate limiter map is never evicted, so requests from an unbounded set of distinct source IPs grow relay memory without bound.
+- Severity: low
+- Category: correctness
+- Blocking: false
+- Location: internal/relayserver/ratelimit.go:35
+- Evidence: IPRateLimiter.limiters (ratelimit.go:33-36) gains one *rate.Limiter per distinct clientIP on first request and is never removed; there is no last-seen tracking, eviction, or size cap, so entries accumulate for the process lifetime.
+- Trigger: A stream of POST /keys or POST /mailbox requests originating from a large or unbounded set of distinct source IPs over the relay's lifetime.
+- Fix direction: Track last-seen time per IP and periodically evict idle limiters, or bound the map with an LRU / maximum-size policy.
+- State: confirmed
+
+### p_003
+- Message: VerifyFiles only iterates manifest.Files, so an unpacked archive entry that is absent from the manifest is installed without any SHA-256 verification, contrary to the contract's 'recomputes SHA-256 over each unpacked native file' requirement.
+- Severity: low
+- Category: correctness
+- Blocking: false
+- Location: internal/envelope/envelope.go:280
+- Evidence: VerifyFiles (lines 279-294) loops over o.Manifest.Files and checks each declared file exists and matches; it never checks the reverse (that o.Files contains no entry missing from the manifest). In cmd_open.go, pkg.Files = opened.Files (all unpacked native files), and adapter.Install writes every path that passes claudeSafePath/codexSafePath — so an extra file under <id>/subagents/ would be installed unverified. age AEAD limits this to the signature-verified sender, so impact is narrow.
+- Trigger: An envelope whose tar contains a native file (at an adapter-safe relative path) that is not listed in manifest.json's files[]; echos open installs it without checksum verification.
+- Fix direction: Make verification symmetric: after VerifyFiles confirms every manifest entry, also reject the envelope if o.Files contains any path not present in the manifest (i.e., the set of unpacked native files must equal the set of manifest files[]).
+- State: confirmed
+
+### p_004
+- Message: The 'no friend' error hint in send prints an echo-id with a spurious 'echo:' prefix, producing an incorrect next command that contradicts the documented echo-id format and the agent-first 'ready-to-run next command' contract.
+- Severity: low
+- Category: quality
+- Blocking: false
+- Location: cmd/echos/cmd_send.go:34
+- Evidence: Line 34 emits fail(..., fmt.Sprintf("echos friend add %s echo:<their-echo-id>", c.Friend), ...). Everywhere else an echo-id is a bare 20-hex string (cmd_id.go prints id.EchoID bare; friend add success prints it bare; friend add's own next-hint is 'echos friend add %s %s' with no prefix). The 'echo:' prefix is not part of the contract's echo-id format, so an agent substituting the placeholder would run an invalid command that 404s at the relay.
+- Trigger: Running `echos send <friend>` where <friend> is not in the local address book; the printed next command carries the invalid 'echo:' prefix.
+- Fix direction: Change the hint to the documented form, e.g. `echos friend add <name> <their-echo-id>`, dropping the 'echo:' prefix.
+- State: confirmed
+
+### p_005
+- Message: The `--key` external-SSH-key identity path (createFromExternalKey and its branches: unencrypted-ed25519 reuse, non-ed25519 rejection, passphrase→ssh-agent fallback, and the agent-backed load path) has no test coverage; all tests exercise only Ensure(dir, "") / `echos id` with a freshly generated key.
+- Severity: medium
+- Category: quality
+- Blocking: false
+- Location: internal/identity/identity.go:112
+- Evidence: TestEnsureCreatesFreshIdentity (identity_test.go:17) and TestIdentityLifecycle call Ensure with an empty key path; TestOpenDegradationMatrix also uses identity.Ensure(dir, ""). No test passes a non-empty externalKeyPath, so lines 112-156 (including the 'unsupported key type' rejections and ssh-agent fallback) are never executed. `--key` is listed in scope ('optional reuse of an existing SSH key via --key').
+- Trigger: Running `echos id --key <path>` with an existing ed25519 key, a non-ed25519 key, or a passphrase-protected key.
+- Fix direction: Add unit tests over Ensure(dir, keyPath): reuse of a written unencrypted ed25519 key produces a stable echo-id, a non-ed25519 (e.g. rsa/ecdsa) key is rejected with the unsupported-key-type error, and a missing/unreadable key path errors.
+- State: confirmed
+
+### p_006
+- Message: The `echos open --resume` execution path (the `if c.Resume` branch and runResume) is never exercised; no test passes --resume, so the opt-in exec behavior mandated by the behavior contract is untested.
+- Severity: low
+- Category: quality
+- Blocking: false
+- Location: cmd/echos/cmd_open.go:145
+- Evidence: All open invocations in the suite are `run(t, "open", "--json")` or `run(t, "open", "--allow-unknown", "--json")` (e2e_test.go:73, open_degradation_test.go:65, open_unknown_sender_test.go:72). runResume (cmd_open.go:171-184) has no caller in tests, so the exec branch and its error-to-exit-code-1 mapping are uncovered.
+- Trigger: Invoking `echos open --resume` after a successful decrypt+install.
+- Fix direction: Add a test that stubs the resume executable on PATH (or a fake adapter ResumeCommand pointing at a trivial command) and asserts `open --resume` runs it, and that omitting --resume does not exec.
+- State: confirmed
+
+### p_007
+- Message: The key-publication-failure degradation branch in ensureIdentity (identity still created, warning printed, exit 0 when the relay POST /keys fails) is untested; every test starts a relay before creating an identity.
+- Severity: low
+- Category: quality
+- Blocking: false
+- Location: cmd/echos/app.go:45
+- Evidence: app.go:42-48 warns on stderr and continues when PublishKey fails, matching contract assumption #11. Every identity-creating test calls startTestRelay(t)/startTestRelayWithStore(t) first (e.g. identity_lifecycle_test.go creates the identity with no relay but never asserts the warning; the other id tests all have a live relay), so the pubErr!=nil path and its 'warning: ... key publication failed' message are never asserted.
+- Trigger: Running `echos id` (or any identity-creating command) when the relay is unreachable or returns an error on POST /keys.
+- Fix direction: Add a test that runs `echos id` with ECHOS_RELAY pointing at a closed/erroring endpoint and asserts exit code 0, a non-empty echo-id, and the publication-failure warning on stderr.
+- State: confirmed
+
+### p_008
+- Message: envelope.VerifyFiles is only ever run on matching input; the size/checksum-mismatch rejection branch that binds native-file bytes to the signed manifest is untested.
+- Severity: low
+- Category: quality
+- Blocking: false
+- Location: internal/envelope/envelope.go:279
+- Evidence: In envelope_test.go, VerifyFiles is called only in the happy paths (TestEnvelopeRoundTrip:70, TestSubagentsSubtreeRoundTrip:168). The tamper tests fail earlier: TestEnvelopeTamperedBlobFailsToOpen fails at age-decrypt, TestEnvelopeTamperedManifestFailsSignatureVerification fails at VerifySignature. No test constructs an Opened whose Files bytes disagree with Manifest.Files sha256/size, so lines 285-291 never return an error under test.
+- Trigger: An opened envelope whose unpacked native file bytes or length do not match the manifest's files[].sha256/size entry.
+- Fix direction: Add a unit test that mutates one entry of an Opened.Files map (or manifest size/hash) and asserts VerifyFiles returns a checksum/size mismatch error.
+- State: confirmed
+
+### p_009
+- Message: rolloutsByID's WalkDir callback returns nil on every error, so the helper never returns a non-nil error; the os.IsNotExist(err) recovery in Discover (and the error returns in rolloutsByID and Package) are unreachable dead code.
+- Severity: low
+- Category: quality
+- Blocking: false
+- Location: internal/session/codex.go:84
+- Evidence: codex.go:42-45 the walk fn does `if err != nil { return nil }`; filepath.WalkDir returns its callback's result even for the initial Lstat(root) failure, so rolloutsByID always returns (map, nil). Consequently the `if err != nil` return in rolloutsByID (60-62), the `os.IsNotExist(err)` recovery in Discover (82-89), and the error return in Package (158-161) can never execute; a missing sessions root instead yields an empty map that callers already handle.
+- Trigger: always (the guarded error conditions are structurally unreachable given the swallowing walk callback)
+- Fix direction: Either drop the os.IsNotExist recovery in Discover and change rolloutsByID to not return an error, or make the walk callback propagate genuine (non-NotExist) errors so the existing handling becomes meaningful.
+- State: confirmed
+
+### p_010
+- Message: SPEC.md §4 documents the Envelope v1 wire format inconsistently with the shipped/contracted implementation: it states the header magic is "ECHS" and shows a manifest.json schema (echos, project_hint, sender{echo_id,pubkey}, files[{path,role}]) that both differ from what ships (magic "ECHO"; manifest fields version/tool/session_id/project/title/sender_echo_id/sender_fingerprint/created_at/files[{path,size,sha256}]). As the repo's only human-readable spec for a versioned wire contract, it would mislead a reimplementer.
+- Severity: low
+- Category: quality
+- Blocking: false
+- Location: SPEC.md:159
+- Evidence: SPEC.md:159 '[magic "ECHS" | version u8 = 1]' and manifest example SPEC.md:174-186 vs internal/envelope/envelope.go:30 'Magic = "ECHO"' and the contract's manifest schema (version/tool/session_id/.../files[{path,size,sha256}]).
+- Trigger: A developer or new-adapter author reads SPEC.md §4 to implement or interop with the Envelope v1 wire format and follows the documented magic/manifest, which do not match the shipped bytes.
+- Fix direction: Update SPEC.md §4 to match the delivered Envelope v1 (magic "ECHO", the real manifest.json field set), or add a note that contract/contract.json supersedes SPEC.md for the wire format.
+- State: confirmed
+
+### p_011
+- Message: The echos CLI documents the echo-id in two conflicting forms: `echos id` prints a bare 20-hex-char id and the `friend add` help says 'as printed by echos id', but the `echos send` failure hint instructs the user to run `echos friend add <friend> echo:<their-echo-id>` with an `echo:` prefix. A user copying the hinted form passes a prefixed value that friend add's relay lookup and hash comparison will not match.
+- Severity: low
+- Category: quality
+- Blocking: false
+- Location: cmd/echos/cmd_send.go:34
+- Evidence: cmd/echos/cmd_send.go:34 hint 'echos friend add %s echo:<their-echo-id>' vs internal/identity/identity.go:55-57 EchoID = bare first-20-hex (no prefix) and cmd/echos/cmd_friend.go:18 help 'as printed by their echos id'; friend add compares identity.EchoID(pub) != c.EchoID (cmd_friend.go:33) so a prefixed value is rejected.
+- Trigger: A user reads the `echos send` failure hint (or the SPEC examples) and runs `echos friend add <name> echo:<id>` using the documented `echo:` prefix.
+- Fix direction: Make the send hint use the bare echo-id form consistent with `echos id` output and the friend-add help (drop the `echo:` prefix); optionally align SPEC.md examples to the bare 20-hex form.
+- Uncertainty: The functional consequence (a not-ready-to-run hint command) overlaps the correctness/behavior-contract lens; reported here strictly as a documentation-notation inconsistency across the CLI's own user-facing strings.
+- State: confirmed
+
+## How to evaluate
+For each candidate:
+- Read the actual code at the cited file and line.
+- Check whether the trigger condition is real and the evidence is concrete.
+- Verify the fix_direction is actionable and addresses the issue.
+- Set verdict=confirmed if you are confident the issue is real after verification.
+- Set verdict=disputed if you are confident the issue is a false positive.
+- Set verdict=insufficient_evidence if you cannot determine credibility; name exactly what is missing in the reason field.
+
+## Required structured output
+
+You MUST emit exactly one fenced JSON block using the schema below.
+Include only proposals you can reach a verdict on. Omit proposals you are uncertain about.
+Prose commentary is supplemental; the parser uses only the JSON block.
+
+```json
+{
+  "schema": "pactum.review_critic_verdicts.v1alpha1",
+  "verdicts": [
+    {
+      "proposal_id": "p_001",
+      "verdict": "confirmed",
+      "reason": "The issue is real: ..."
+    }
+  ]
+}
+```
+
+Rules:
+- Use verdict: "confirmed", "disputed", or "insufficient_evidence".
+- verdict=confirmed: you verified the issue is real with concrete evidence.
+- verdict=disputed: you verified the issue is a false positive with counter-evidence.
+- verdict=insufficient_evidence: you cannot determine credibility; name exactly what is missing in reason.
+- Use proposal_id exactly as shown in the candidates above.
+- Do not invent new findings or modify existing ones.

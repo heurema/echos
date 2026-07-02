@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_012",
+  "command": "sh -c 'grep -rl \"func TestKeyPublicationAndFriendResolution(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestKeyPublicationAndFriendResolution$\" -v | grep -q -- \"--- PASS: TestKeyPublicationAndFriendResolution\"'",
+  "started_at": "2026-07-02T11:04:21.800386Z",
+  "finished_at": "2026-07-02T11:04:22.998552Z",
+  "duration_ms": 1198,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_012/stdout.log",
+  "stderr": "gate/validation/command_012/stderr.log"
+}

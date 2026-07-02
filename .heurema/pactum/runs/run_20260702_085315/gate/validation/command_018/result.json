@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_018",
+  "command": "sh -c 'grep -rl \"func TestRelayZeroKnowledgeStorageAndExpiry(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestRelayZeroKnowledgeStorageAndExpiry$\" -v | grep -q -- \"--- PASS: TestRelayZeroKnowledgeStorageAndExpiry\"'",
+  "started_at": "2026-07-02T11:04:27.646412Z",
+  "finished_at": "2026-07-02T11:04:28.646799Z",
+  "duration_ms": 1000,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_018/stdout.log",
+  "stderr": "gate/validation/command_018/stderr.log"
+}

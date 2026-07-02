@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_017",
+  "command": "sh -c 'grep -rl \"func TestOpenRejectsUnknownSender(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestOpenRejectsUnknownSender$\" -v | grep -q -- \"--- PASS: TestOpenRejectsUnknownSender\"'",
+  "started_at": "2026-07-02T11:04:26.679489Z",
+  "finished_at": "2026-07-02T11:04:27.645917Z",
+  "duration_ms": 966,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_017/stdout.log",
+  "stderr": "gate/validation/command_017/stderr.log"
+}

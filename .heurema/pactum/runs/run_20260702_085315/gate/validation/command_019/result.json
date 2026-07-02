@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_019",
+  "command": "sh -c 'grep -rl \"func TestCLIBehaviorContract(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestCLIBehaviorContract$\" -v | grep -q -- \"--- PASS: TestCLIBehaviorContract\"'",
+  "started_at": "2026-07-02T11:04:28.647114Z",
+  "finished_at": "2026-07-02T11:04:29.955975Z",
+  "duration_ms": 1308,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_019/stdout.log",
+  "stderr": "gate/validation/command_019/stderr.log"
+}

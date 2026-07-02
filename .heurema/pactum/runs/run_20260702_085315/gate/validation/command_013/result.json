@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_013",
+  "command": "sh -c 'grep -rl \"func TestSendDefaultsToCwdProjectLatestSession(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestSendDefaultsToCwdProjectLatestSession$\" -v | grep -q -- \"--- PASS: TestSendDefaultsToCwdProjectLatestSession\"'",
+  "started_at": "2026-07-02T11:04:22.999359Z",
+  "finished_at": "2026-07-02T11:04:23.991773Z",
+  "duration_ms": 992,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_013/stdout.log",
+  "stderr": "gate/validation/command_013/stderr.log"
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_020",
+  "command": "sh -c 'grep -rl \"func TestChallengeNonceExpiryAndReplay(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestChallengeNonceExpiryAndReplay$\" -v | grep -q -- \"--- PASS: TestChallengeNonceExpiryAndReplay\"'",
+  "started_at": "2026-07-02T11:04:29.956676Z",
+  "finished_at": "2026-07-02T11:04:30.944903Z",
+  "duration_ms": 988,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_020/stdout.log",
+  "stderr": "gate/validation/command_020/stderr.log"
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_007",
+  "command": "sh -c 'grep -rl \"func TestEndToEndSendInboxOpen_Claude(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestEndToEndSendInboxOpen_Claude$\" -v | grep -q -- \"--- PASS: TestEndToEndSendInboxOpen_Claude\"'",
+  "started_at": "2026-07-02T11:04:16.3267Z",
+  "finished_at": "2026-07-02T11:04:17.546082Z",
+  "duration_ms": 1219,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_007/stdout.log",
+  "stderr": "gate/validation/command_007/stderr.log"
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_015",
+  "command": "sh -c 'grep -rl \"func TestSessionsDiscovery(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestSessionsDiscovery$\" -v | grep -q -- \"--- PASS: TestSessionsDiscovery\"'",
+  "started_at": "2026-07-02T11:04:24.859198Z",
+  "finished_at": "2026-07-02T11:04:25.864627Z",
+  "duration_ms": 1005,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_015/stdout.log",
+  "stderr": "gate/validation/command_015/stderr.log"
+}

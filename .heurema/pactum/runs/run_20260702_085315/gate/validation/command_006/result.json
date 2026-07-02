@@ -1,0 +1,12 @@
+{
+  "schema": "pactum.validation_command_result.v1alpha1",
+  "id": "command_006",
+  "command": "sh -c 'grep -rl \"func TestRelayAuthRejectsUnsignedOrInvalidReads(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestRelayAuthRejectsUnsignedOrInvalidReads$\" -v | grep -q -- \"--- PASS: TestRelayAuthRejectsUnsignedOrInvalidReads\"'",
+  "started_at": "2026-07-02T11:04:15.331818Z",
+  "finished_at": "2026-07-02T11:04:16.326335Z",
+  "duration_ms": 994,
+  "exit_code": 0,
+  "timed_out": false,
+  "stdout": "gate/validation/command_006/stdout.log",
+  "stderr": "gate/validation/command_006/stderr.log"
+}

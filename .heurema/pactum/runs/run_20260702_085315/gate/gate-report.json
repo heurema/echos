@@ -1,0 +1,301 @@
+{
+  "schema": "pactum.gate_report.v1alpha1",
+  "run_id": "run_20260702_085315",
+  "created_at": "2026-07-02T11:04:32Z",
+  "status": "needs_review",
+  "execution": {
+    "attempt_id": "attempt_001",
+    "exit_code": 0,
+    "timed_out": false,
+    "result": "execute/last-result.json"
+  },
+  "changes": {
+    "status": "changed",
+    "changed_files": [],
+    "new_files": [
+      "cmd/echos-relay/main.go",
+      "cmd/echos/app.go",
+      "cmd/echos/cli.go",
+      "cmd/echos/cli_behavior_test.go",
+      "cmd/echos/cmd_friend.go",
+      "cmd/echos/cmd_id.go",
+      "cmd/echos/cmd_inbox.go",
+      "cmd/echos/cmd_open.go",
+      "cmd/echos/cmd_send.go",
+      "cmd/echos/cmd_sessions.go",
+      "cmd/echos/e2e_test.go",
+      "cmd/echos/identity_lifecycle_test.go",
+      "cmd/echos/json_schema_test.go",
+      "cmd/echos/key_friend_test.go",
+      "cmd/echos/main.go",
+      "cmd/echos/open_degradation_test.go",
+      "cmd/echos/open_unknown_sender_test.go",
+      "cmd/echos/send_default_test.go",
+      "cmd/echos/testutil_test.go",
+      "go.mod",
+      "go.sum",
+      "internal/envelope/archive_safety_test.go",
+      "internal/envelope/envelope.go",
+      "internal/envelope/envelope_test.go",
+      "internal/envelope/manifest.go",
+      "internal/identity/config.go",
+      "internal/identity/friends.go",
+      "internal/identity/identity.go",
+      "internal/identity/identity_test.go",
+      "internal/relay/client.go",
+      "internal/relay/client_test.go",
+      "internal/relayserver/challenge.go",
+      "internal/relayserver/ratelimit.go",
+      "internal/relayserver/server.go",
+      "internal/relayserver/server_test.go",
+      "internal/relayserver/store.go",
+      "internal/session/claude.go",
+      "internal/session/codex.go",
+      "internal/session/session.go",
+      "internal/session/session_test.go"
+    ],
+    "missing_files": [],
+    "reasons": [
+      "new file: cmd/echos-relay/main.go",
+      "new file: cmd/echos/app.go",
+      "new file: cmd/echos/cli.go",
+      "new file: cmd/echos/cli_behavior_test.go",
+      "new file: cmd/echos/cmd_friend.go",
+      "new file: cmd/echos/cmd_id.go",
+      "new file: cmd/echos/cmd_inbox.go",
+      "new file: cmd/echos/cmd_open.go",
+      "new file: cmd/echos/cmd_send.go",
+      "new file: cmd/echos/cmd_sessions.go",
+      "new file: cmd/echos/e2e_test.go",
+      "new file: cmd/echos/identity_lifecycle_test.go",
+      "new file: cmd/echos/json_schema_test.go",
+      "new file: cmd/echos/key_friend_test.go",
+      "new file: cmd/echos/main.go",
+      "new file: cmd/echos/open_degradation_test.go",
+      "new file: cmd/echos/open_unknown_sender_test.go",
+      "new file: cmd/echos/send_default_test.go",
+      "new file: cmd/echos/testutil_test.go",
+      "new file: go.mod",
+      "new file: go.sum",
+      "new file: internal/envelope/archive_safety_test.go",
+      "new file: internal/envelope/envelope.go",
+      "new file: internal/envelope/envelope_test.go",
+      "new file: internal/envelope/manifest.go",
+      "new file: internal/identity/config.go",
+      "new file: internal/identity/friends.go",
+      "new file: internal/identity/identity.go",
+      "new file: internal/identity/identity_test.go",
+      "new file: internal/relay/client.go",
+      "new file: internal/relay/client_test.go",
+      "new file: internal/relayserver/challenge.go",
+      "new file: internal/relayserver/ratelimit.go",
+      "new file: internal/relayserver/server.go",
+      "new file: internal/relayserver/server_test.go",
+      "new file: internal/relayserver/store.go",
+      "new file: internal/session/claude.go",
+      "new file: internal/session/codex.go",
+      "new file: internal/session/session.go",
+      "new file: internal/session/session_test.go"
+    ]
+  },
+  "validation": {
+    "commands_allowed": true,
+    "commands": [
+      {
+        "id": "command_001",
+        "command": "go build ./...",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_001/stdout.log",
+        "stderr": "gate/validation/command_001/stderr.log",
+        "result": "gate/validation/command_001/result.json"
+      },
+      {
+        "id": "command_002",
+        "command": "go vet ./...",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_002/stdout.log",
+        "stderr": "gate/validation/command_002/stderr.log",
+        "result": "gate/validation/command_002/result.json"
+      },
+      {
+        "id": "command_003",
+        "command": "go test ./...",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_003/stdout.log",
+        "stderr": "gate/validation/command_003/stderr.log",
+        "result": "gate/validation/command_003/result.json"
+      },
+      {
+        "id": "command_004",
+        "command": "sh -c 'grep -rl \"func TestEnvelopeRoundTrip(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestEnvelopeRoundTrip$\" -v | grep -q -- \"--- PASS: TestEnvelopeRoundTrip\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_004/stdout.log",
+        "stderr": "gate/validation/command_004/stderr.log",
+        "result": "gate/validation/command_004/result.json"
+      },
+      {
+        "id": "command_005",
+        "command": "sh -c 'grep -rl \"func TestSubagentsSubtreeRoundTrip(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestSubagentsSubtreeRoundTrip$\" -v | grep -q -- \"--- PASS: TestSubagentsSubtreeRoundTrip\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_005/stdout.log",
+        "stderr": "gate/validation/command_005/stderr.log",
+        "result": "gate/validation/command_005/result.json"
+      },
+      {
+        "id": "command_006",
+        "command": "sh -c 'grep -rl \"func TestRelayAuthRejectsUnsignedOrInvalidReads(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestRelayAuthRejectsUnsignedOrInvalidReads$\" -v | grep -q -- \"--- PASS: TestRelayAuthRejectsUnsignedOrInvalidReads\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_006/stdout.log",
+        "stderr": "gate/validation/command_006/stderr.log",
+        "result": "gate/validation/command_006/result.json"
+      },
+      {
+        "id": "command_007",
+        "command": "sh -c 'grep -rl \"func TestEndToEndSendInboxOpen_Claude(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestEndToEndSendInboxOpen_Claude$\" -v | grep -q -- \"--- PASS: TestEndToEndSendInboxOpen_Claude\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_007/stdout.log",
+        "stderr": "gate/validation/command_007/stderr.log",
+        "result": "gate/validation/command_007/result.json"
+      },
+      {
+        "id": "command_008",
+        "command": "sh -c 'grep -rl \"func TestEndToEndSendInboxOpen_Codex(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestEndToEndSendInboxOpen_Codex$\" -v | grep -q -- \"--- PASS: TestEndToEndSendInboxOpen_Codex\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_008/stdout.log",
+        "stderr": "gate/validation/command_008/stderr.log",
+        "result": "gate/validation/command_008/result.json"
+      },
+      {
+        "id": "command_009",
+        "command": "sh -c 'grep -rl \"func TestOpenDegradationMatrix(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestOpenDegradationMatrix$\" -v | grep -q -- \"--- PASS: TestOpenDegradationMatrix\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_009/stdout.log",
+        "stderr": "gate/validation/command_009/stderr.log",
+        "result": "gate/validation/command_009/result.json"
+      },
+      {
+        "id": "command_010",
+        "command": "sh -c 'grep -rl \"func TestOpenRejectsUnsafeArchivePaths(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestOpenRejectsUnsafeArchivePaths$\" -v | grep -q -- \"--- PASS: TestOpenRejectsUnsafeArchivePaths\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_010/stdout.log",
+        "stderr": "gate/validation/command_010/stderr.log",
+        "result": "gate/validation/command_010/result.json"
+      },
+      {
+        "id": "command_011",
+        "command": "sh -c 'grep -rl \"func TestJSONOutputSchemas(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestJSONOutputSchemas$\" -v | grep -q -- \"--- PASS: TestJSONOutputSchemas\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_011/stdout.log",
+        "stderr": "gate/validation/command_011/stderr.log",
+        "result": "gate/validation/command_011/result.json"
+      },
+      {
+        "id": "command_012",
+        "command": "sh -c 'grep -rl \"func TestKeyPublicationAndFriendResolution(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestKeyPublicationAndFriendResolution$\" -v | grep -q -- \"--- PASS: TestKeyPublicationAndFriendResolution\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_012/stdout.log",
+        "stderr": "gate/validation/command_012/stderr.log",
+        "result": "gate/validation/command_012/result.json"
+      },
+      {
+        "id": "command_013",
+        "command": "sh -c 'grep -rl \"func TestSendDefaultsToCwdProjectLatestSession(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestSendDefaultsToCwdProjectLatestSession$\" -v | grep -q -- \"--- PASS: TestSendDefaultsToCwdProjectLatestSession\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_013/stdout.log",
+        "stderr": "gate/validation/command_013/stderr.log",
+        "result": "gate/validation/command_013/result.json"
+      },
+      {
+        "id": "command_014",
+        "command": "sh -c 'grep -rl \"func TestEnvelopeHeaderAndInternalSignature(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestEnvelopeHeaderAndInternalSignature$\" -v | grep -q -- \"--- PASS: TestEnvelopeHeaderAndInternalSignature\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_014/stdout.log",
+        "stderr": "gate/validation/command_014/stderr.log",
+        "result": "gate/validation/command_014/result.json"
+      },
+      {
+        "id": "command_015",
+        "command": "sh -c 'grep -rl \"func TestSessionsDiscovery(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestSessionsDiscovery$\" -v | grep -q -- \"--- PASS: TestSessionsDiscovery\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_015/stdout.log",
+        "stderr": "gate/validation/command_015/stderr.log",
+        "result": "gate/validation/command_015/result.json"
+      },
+      {
+        "id": "command_016",
+        "command": "sh -c 'grep -rl \"func TestIdentityLifecycle(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestIdentityLifecycle$\" -v | grep -q -- \"--- PASS: TestIdentityLifecycle\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_016/stdout.log",
+        "stderr": "gate/validation/command_016/stderr.log",
+        "result": "gate/validation/command_016/result.json"
+      },
+      {
+        "id": "command_017",
+        "command": "sh -c 'grep -rl \"func TestOpenRejectsUnknownSender(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestOpenRejectsUnknownSender$\" -v | grep -q -- \"--- PASS: TestOpenRejectsUnknownSender\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_017/stdout.log",
+        "stderr": "gate/validation/command_017/stderr.log",
+        "result": "gate/validation/command_017/result.json"
+      },
+      {
+        "id": "command_018",
+        "command": "sh -c 'grep -rl \"func TestRelayZeroKnowledgeStorageAndExpiry(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestRelayZeroKnowledgeStorageAndExpiry$\" -v | grep -q -- \"--- PASS: TestRelayZeroKnowledgeStorageAndExpiry\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_018/stdout.log",
+        "stderr": "gate/validation/command_018/stderr.log",
+        "result": "gate/validation/command_018/result.json"
+      },
+      {
+        "id": "command_019",
+        "command": "sh -c 'grep -rl \"func TestCLIBehaviorContract(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestCLIBehaviorContract$\" -v | grep -q -- \"--- PASS: TestCLIBehaviorContract\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_019/stdout.log",
+        "stderr": "gate/validation/command_019/stderr.log",
+        "result": "gate/validation/command_019/result.json"
+      },
+      {
+        "id": "command_020",
+        "command": "sh -c 'grep -rl \"func TestChallengeNonceExpiryAndReplay(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestChallengeNonceExpiryAndReplay$\" -v | grep -q -- \"--- PASS: TestChallengeNonceExpiryAndReplay\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_020/stdout.log",
+        "stderr": "gate/validation/command_020/stderr.log",
+        "result": "gate/validation/command_020/result.json"
+      },
+      {
+        "id": "command_021",
+        "command": "sh -c 'grep -rl \"func TestRelayLimits(t \\*testing.T)\" --include=\"*_test.go\" . | grep -q . \u0026\u0026 go test ./... -run \"^TestRelayLimits$\" -v | grep -q -- \"--- PASS: TestRelayLimits\"'",
+        "exit_code": 0,
+        "timed_out": false,
+        "stdout": "gate/validation/command_021/stdout.log",
+        "stderr": "gate/validation/command_021/stderr.log",
+        "result": "gate/validation/command_021/result.json"
+      }
+    ]
+  },
+  "summary": {
+    "execution_passed": true,
+    "validation_passed": true,
+    "changes_need_review": true,
+    "scope_blocked": false
+  }
+}
