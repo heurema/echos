@@ -3,13 +3,26 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"time"
 
 	"github.com/heurema/echos/internal/identity"
 	"github.com/heurema/echos/internal/relay"
 )
+
+// registerHint returns "echos id" as the recovery next-command when err is a
+// relay 404 — the challenge/mailbox endpoints 404 when the caller's key is not
+// published — so re-registering the identity is one copy-paste away.
+func registerHint(err error) string {
+	var apiErr *relay.APIError
+	if errors.As(err, &apiErr) && apiErr.Status == http.StatusNotFound {
+		return "echos id"
+	}
+	return ""
+}
 
 // App is the shared runtime context threaded into every command.
 type App struct {

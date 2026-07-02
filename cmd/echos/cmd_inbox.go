@@ -33,7 +33,7 @@ func (c *InboxCmd) Run(app *App) error {
 	client := app.relayClient()
 	pending, err := client.GetMailbox(ctx, id.EchoID, id.Signer)
 	if err != nil {
-		return fail(app, c.JSON, 1, "", "fetch mailbox: %v", err)
+		return fail(app, c.JSON, 1, registerHint(err), "fetch mailbox: %v", err)
 	}
 
 	book, err := identity.LoadFriends(app.ConfigDir)

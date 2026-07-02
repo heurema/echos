@@ -36,7 +36,7 @@ func (c *OpenCmd) Run(app *App) error {
 	if blobID == "" {
 		pending, err := client.GetMailbox(ctx, id.EchoID, id.Signer)
 		if err != nil {
-			return fail(app, c.JSON, 1, "", "fetch mailbox: %v", err)
+			return fail(app, c.JSON, 1, registerHint(err), "fetch mailbox: %v", err)
 		}
 		if len(pending) == 0 {
 			return fail(app, c.JSON, 1, "", "inbox is empty")
@@ -52,7 +52,7 @@ func (c *OpenCmd) Run(app *App) error {
 
 	raw, err := client.GetBlob(ctx, id.EchoID, blobID, id.Signer)
 	if err != nil {
-		return fail(app, c.JSON, 1, "", "fetch blob %s: %v", blobID, err)
+		return fail(app, c.JSON, 1, registerHint(err), "fetch blob %s: %v", blobID, err)
 	}
 
 	ageID, err := envelope.AgeIdentity(id.PrivateKey)
