@@ -20,17 +20,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/metadata-action@v5
-        id: meta
-        with:
-          images: ghcr.io/heurema/echos-relay
-          tags: |
-            type=sha
-            type=raw,value=latest,enable={{is_default_branch}}
+      # Tag format dev-<7hexsha>-<UTC yyyymmddhhmmss> so Flux's ImagePolicy can
+      # numerically sort by the timestamp and pick the newest build.
+      - id: tag
+        run: echo "tag=dev-$(git rev-parse --short=7 HEAD)-$(date -u +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
 
       - uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ghcr.io/heurema/echos-relay:${{ steps.tag.outputs.tag }}
+            ghcr.io/heurema/echos-relay:latest
