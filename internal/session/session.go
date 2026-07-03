@@ -24,6 +24,13 @@ type Session struct {
 	Project string    `json:"project"`
 	Title   string    `json:"title"`
 	Updated time.Time `json:"updated"`
+
+	// SourceDir is the absolute path of the on-disk project directory the
+	// session was actually found under during Discover, as opposed to
+	// Project (the transcript-embedded cwd, which may not match the real
+	// directory name for symlinked/sandboxed/renamed homes). Adapters
+	// should package from SourceDir when set. Not part of the JSON schema.
+	SourceDir string `json:"-"`
 }
 
 // File is a native session file: a relative path (adapter-owned, used both

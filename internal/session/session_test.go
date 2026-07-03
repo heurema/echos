@@ -3,6 +3,7 @@ package session
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -90,6 +91,80 @@ func TestSessionsDiscovery(t *testing.T) {
 		if sessions[i].Updated.Before(sessions[i+1].Updated) {
 			t.Fatalf("sessions not newest-first: %v before %v", sessions[i].Updated, sessions[i+1].Updated)
 		}
+	}
+}
+
+// TestClaudePackageUsesDiscoveredDir reproduces issue #3: a transcript's
+// embedded cwd need not match the name of the directory it actually lives
+// under (symlinked/sandboxed/renamed homes). Discover() walks the real
+// directory and records it in Session.SourceDir; Package() must use that,
+// not re-derive the path from the (possibly mismatched) embedded cwd.
+func TestClaudePackageUsesDiscoveredDir(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	embeddedCWD := "/Users/alice/repos/demo"
+	id := "dddddddd-0000-0000-0000-000000000004"
+	// The on-disk directory name deliberately does NOT match
+	// encodeClaudeProject(embeddedCWD).
+	projDir := filepath.Join(home, ".claude", "projects", "totally-unrelated-dir-name")
+	writeFile(t, filepath.Join(projDir, id+".jsonl"), claudeLineJSON(embeddedCWD))
+	writeFile(t, filepath.Join(projDir, id, "subagents", "agent-1.jsonl"), `{"hello":"world"}`+"\n")
+
+	sessions, err := DiscoverAll()
+	if err != nil {
+		t.Fatalf("DiscoverAll: %v", err)
+	}
+	if len(sessions) != 1 {
+		t.Fatalf("expected 1 session, got %d: %+v", len(sessions), sessions)
+	}
+	s := sessions[0]
+	if s.SourceDir != projDir {
+		t.Fatalf("SourceDir = %q, want %q", s.SourceDir, projDir)
+	}
+
+	a := ClaudeAdapter{}
+	files, err := a.Package(s)
+	if err != nil {
+		t.Fatalf("Package: %v", err)
+	}
+	if len(files) != 2 {
+		t.Fatalf("expected 2 files (transcript+subagent), got %d: %+v", len(files), files)
+	}
+	for _, f := range files {
+		if !strings.HasPrefix(f.Abs, projDir) {
+			t.Fatalf("packaged file %q not rooted in discovered dir %q", f.Abs, projDir)
+		}
+		if _, err := os.Stat(f.Abs); err != nil {
+			t.Fatalf("packaged file missing: %v", err)
+		}
+	}
+}
+
+// TestClaudePackageFallsBackToEncodedProject covers a Session constructed
+// without SourceDir (e.g. by code outside Discover): Package must fall back
+// to deriving the directory from encodeClaudeProject(s.Project), preserving
+// pre-existing behavior for that path.
+func TestClaudePackageFallsBackToEncodedProject(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	cwd := filepath.Join(home, "proj")
+	id := "eeeeeeee-0000-0000-0000-000000000005"
+	projDir := filepath.Join(home, ".claude", "projects", encodeClaudeProject(cwd))
+	writeFile(t, filepath.Join(projDir, id+".jsonl"), claudeLineJSON(cwd))
+
+	s := Session{Tool: ToolClaude, ID: id, Project: cwd}
+	a := ClaudeAdapter{}
+	files, err := a.Package(s)
+	if err != nil {
+		t.Fatalf("Package: %v", err)
+	}
+	if len(files) != 1 {
+		t.Fatalf("expected 1 file (transcript only), got %d: %+v", len(files), files)
+	}
+	if files[0].Abs != filepath.Join(projDir, id+".jsonl") {
+		t.Fatalf("packaged file = %q, want %q", files[0].Abs, filepath.Join(projDir, id+".jsonl"))
 	}
 }
 
