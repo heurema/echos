@@ -201,3 +201,65 @@ func TestFriendAddSameEchoIDSecondAlias(t *testing.T) {
 		t.Fatalf("friend add bobby stderr missing original alias name: %s", stderr)
 	}
 }
+
+// TestFriendAddIdempotentNoWarning: re-adding an alias that already points
+// at the given echo-id is a no-op refresh, not "another alias" — it must
+// not warn.
+func TestFriendAddIdempotentNoWarning(t *testing.T) {
+	aliceHome := setupHome(t)
+	startTestRelay(t)
+
+	bobHome := t.TempDir()
+	t.Setenv("HOME", bobHome)
+	bobOut, _, code := run(t, "id", "--json")
+	if code != 0 {
+		t.Fatalf("bob id --json failed")
+	}
+	bobID := assertJSONFields(t, bobOut, "echo_id")["echo_id"].(string)
+	t.Setenv("HOME", aliceHome)
+
+	if _, stderr, code := run(t, "friend", "add", "bob", bobID); code != 0 {
+		t.Fatalf("friend add bob: code=%d stderr=%s", code, stderr)
+	}
+
+	_, stderr, code := run(t, "friend", "add", "bob", bobID)
+	if code != 0 {
+		t.Fatalf("re-adding bob with the same echo-id: code=%d stderr=%s", code, stderr)
+	}
+	if strings.Contains(stderr, "warning") {
+		t.Fatalf("re-adding an existing alias for its own echo-id must not warn: stderr=%s", stderr)
+	}
+}
+
+// TestFriendAddSameEchoIDSecondAliasJSON: in --json mode, the duplicate-alias
+// warning is folded into the JSON payload, not printed as plain text to
+// stderr (which would otherwise break stderr's machine-readable contract).
+func TestFriendAddSameEchoIDSecondAliasJSON(t *testing.T) {
+	aliceHome := setupHome(t)
+	startTestRelay(t)
+
+	bobHome := t.TempDir()
+	t.Setenv("HOME", bobHome)
+	bobOut, _, code := run(t, "id", "--json")
+	if code != 0 {
+		t.Fatalf("bob id --json failed")
+	}
+	bobID := assertJSONFields(t, bobOut, "echo_id")["echo_id"].(string)
+	t.Setenv("HOME", aliceHome)
+
+	if _, stderr, code := run(t, "friend", "add", "bob", bobID, "--json"); code != 0 {
+		t.Fatalf("friend add bob --json: code=%d stderr=%s", code, stderr)
+	}
+
+	stdout, stderr, code := run(t, "friend", "add", "bobby", bobID, "--json")
+	if code != 0 {
+		t.Fatalf("friend add bobby --json (same echo-id, second alias): code=%d stderr=%s", code, stderr)
+	}
+	if strings.TrimSpace(stderr) != "" {
+		t.Fatalf("friend add bobby --json must not write plain text to stderr, got: %s", stderr)
+	}
+	fields := assertJSONFields(t, stdout, "name", "echo_id", "fingerprint", "warning")
+	if !strings.Contains(fields["warning"].(string), `"bob"`) {
+		t.Fatalf("friend add bobby --json warning field missing original alias name: %+v", fields)
+	}
+}

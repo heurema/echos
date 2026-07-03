@@ -43,8 +43,11 @@ func (c *FriendAddCmd) Run(app *App) error {
 		return fail(app, c.JSON, 1, "", "load friends: %v", err)
 	}
 	fingerprint := identity.Fingerprint(pub)
+	var warning string
 	if existing, ok := book.FindByEchoID(gotEchoID); ok && existing.Name != c.Name {
-		fmt.Fprintf(app.Stderr, "warning: echo-id %s is already saved as %q; adding another alias %q for the same friend\n", gotEchoID, existing.Name, c.Name)
+		if current, ok := book.Find(c.Name); !ok || current.EchoID != gotEchoID {
+			warning = fmt.Sprintf("echo-id %s is already saved as %q; adding another alias %q for the same friend", gotEchoID, existing.Name, c.Name)
+		}
 	}
 	book.Upsert(identity.Friend{
 		Name:        c.Name,
@@ -58,13 +61,20 @@ func (c *FriendAddCmd) Run(app *App) error {
 	}
 
 	if c.JSON {
-		return writeJSON(app.Stdout, map[string]any{
+		out := map[string]any{
 			"name":        c.Name,
 			"echo_id":     gotEchoID,
 			"fingerprint": fingerprint,
-		})
+		}
+		if warning != "" {
+			out["warning"] = warning
+		}
+		return writeJSON(app.Stdout, out)
 	}
 	fmt.Fprintf(app.Stdout, "added %s (%s)\n", c.Name, gotEchoID)
+	if warning != "" {
+		fmt.Fprintf(app.Stderr, "warning: %s\n", warning)
+	}
 	return nil
 }
 
