@@ -62,6 +62,8 @@ The binary is called `echos` (not `echo` — collides with the shell builtin).
 ```
 echos id                                  # my echo-id; identity created lazily, idempotent
 echos friend add <name> <echo-id>         # add a friend (fetches pubkey from relay, verifies fpr)
+echos friend list [--json]                # list saved friends
+echos friend rm <name> [--json]           # remove a friend by local alias (alias: remove)
 echos sessions [--json] [--tool claude|codex] [-n 20]
                                           # local sessions, newest first
 echos send <friend> [session-id] [--json] [--ttl 24h]
@@ -73,7 +75,7 @@ echos open [id] [--dir <path>] [--json] [--allow-unknown] [--resume]
 
 ### Second ring (additive, does not touch the core)
 
-`friend list/rm` · `send --link` (secret link for non-users, key in
+`send --link` (secret link for non-users, key in
 `#fragment`) · `send --pick` · `send --once` · `send --scrub` ·
 `inbox --watch` (long-poll) · exporters (`--md`).
 
@@ -350,5 +352,6 @@ interactive prompt.
    tests).
 4. **Relay** — server (bbolt, TTL, challenge-auth) + client; local on
    `localhost:8080`.
-5. **`send` / `inbox` / `open` / `friend add`** — assemble the full core.
+5. **`send` / `inbox` / `open` / `friend add` / `friend list` / `friend rm`** —
+   assemble the full core.
 6. Second ring as needed.

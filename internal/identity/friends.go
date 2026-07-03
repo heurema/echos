@@ -98,3 +98,15 @@ func (b *FriendBook) Upsert(f Friend) {
 	}
 	b.Friends = append(b.Friends, f)
 }
+
+// Remove deletes the friend with the given name, returning the removed
+// Friend and true, or (Friend{}, false) if no friend has that name.
+func (b *FriendBook) Remove(name string) (Friend, bool) {
+	for i, f := range b.Friends {
+		if f.Name == name {
+			b.Friends = append(b.Friends[:i], b.Friends[i+1:]...)
+			return f, true
+		}
+	}
+	return Friend{}, false
+}

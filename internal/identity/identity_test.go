@@ -119,6 +119,51 @@ func TestFriendBookRoundTrip(t *testing.T) {
 	}
 }
 
+func TestFriendBookRemove(t *testing.T) {
+	dir := t.TempDir()
+	book, err := LoadFriends(dir)
+	if err != nil {
+		t.Fatalf("LoadFriends on missing file: %v", err)
+	}
+
+	book.Upsert(Friend{Name: "alice", EchoID: "alice-echo-id"})
+	book.Upsert(Friend{Name: "bob", EchoID: "bob-echo-id"})
+	book.Upsert(Friend{Name: "carol", EchoID: "carol-echo-id"})
+
+	removed, ok := book.Remove("bob")
+	if !ok {
+		t.Fatalf("Remove(bob) = false, want true")
+	}
+	if removed.EchoID != "bob-echo-id" {
+		t.Fatalf("Remove(bob) returned wrong friend: %+v", removed)
+	}
+	if len(book.Friends) != 2 {
+		t.Fatalf("expected 2 friends after remove, got %d", len(book.Friends))
+	}
+	if book.Friends[0].Name != "alice" || book.Friends[1].Name != "carol" {
+		t.Fatalf("Remove did not preserve order of remaining friends: %+v", book.Friends)
+	}
+
+	if err := book.Save(); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	reloaded, err := LoadFriends(dir)
+	if err != nil {
+		t.Fatalf("LoadFriends: %v", err)
+	}
+	if _, ok := reloaded.Find("bob"); ok {
+		t.Fatalf("bob still present after reload")
+	}
+
+	_, ok = book.Remove("nobody")
+	if ok {
+		t.Fatalf("Remove(nobody) = true, want false")
+	}
+	if len(book.Friends) != 2 {
+		t.Fatalf("Remove of a missing name changed the book: %+v", book.Friends)
+	}
+}
+
 func TestRelayURLResolution(t *testing.T) {
 	dir := t.TempDir()
 	os.Unsetenv("ECHOS_RELAY")

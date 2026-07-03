@@ -61,6 +61,8 @@ The CLI is **agent-first**: non-interactive, `--json` on every command, errors a
 |---|---|
 | `echos id [--key <path>]` | Print your echo-id; identity created lazily (fresh ed25519, or reuse an SSH key via `--key`) and (re)published to the relay. |
 | `echos friend add <name> <echo-id>` | Fetch a friend's key from the relay, verify it hashes to their echo-id, store under a local alias. |
+| `echos friend list` | List saved friends. |
+| `echos friend rm (remove) <name>` | Remove a friend by local alias. |
 | `echos sessions [--tool claude\|codex] [--n N]` | List local sessions, newest first. |
 | `echos send <friend> [<session-id>]` | Encrypt a session to a friend and drop it in their mailbox. Defaults to the newest session in the current directory's project. |
 | `echos inbox` | List pending items addressed to you. |

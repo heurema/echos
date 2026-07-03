@@ -34,6 +34,30 @@ func TestJSONOutputSchemas(t *testing.T) {
 	}
 	assertJSONFields(t, friendOut, "name", "echo_id", "fingerprint")
 
+	friendListOut, _, code := run(t, "friend", "list", "--json")
+	if code != 0 {
+		t.Fatalf("friend list --json failed")
+	}
+	friendListItems := decodeJSON[[]map[string]any](t, friendListOut)
+	if len(friendListItems) != 1 {
+		t.Fatalf("expected 1 friend, got %d: %s", len(friendListItems), friendListOut)
+	}
+	for _, k := range []string{"name", "echo_id", "fingerprint", "added_at"} {
+		if _, ok := friendListItems[0][k]; !ok {
+			t.Fatalf("friend list item missing field %q: %+v", k, friendListItems[0])
+		}
+	}
+
+	friendRmOut, _, code := run(t, "friend", "rm", "bob", "--json")
+	if code != 0 {
+		t.Fatalf("friend rm --json failed")
+	}
+	assertJSONFields(t, friendRmOut, "name", "echo_id", "fingerprint")
+
+	if _, stderr, code := run(t, "friend", "add", "bob", bobID, "--json"); code != 0 {
+		t.Fatalf("re-adding bob after friend rm --json failed: %s", stderr)
+	}
+
 	proj := t.TempDir()
 	writeClaudeSession(t, aliceHome, proj, "33333333-3333-3333-3333-333333333333", "hello", time.Now())
 	origWD, _ := os.Getwd()
