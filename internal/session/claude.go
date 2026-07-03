@@ -65,11 +65,12 @@ func (ClaudeAdapter) Discover() ([]Session, error) {
 			}
 			cwd, title := parseClaudeHead(path)
 			sessions = append(sessions, Session{
-				Tool:    ToolClaude,
-				ID:      id,
-				Project: cwd,
-				Title:   title,
-				Updated: info.ModTime(),
+				Tool:      ToolClaude,
+				ID:        id,
+				Project:   cwd,
+				Title:     title,
+				Updated:   info.ModTime(),
+				SourceDir: projDir,
 			})
 		}
 	}
@@ -152,11 +153,14 @@ func summarize(s string) string {
 }
 
 func (ClaudeAdapter) Package(s Session) ([]File, error) {
-	root, err := claudeProjectsRoot()
-	if err != nil {
-		return nil, err
+	projDir := s.SourceDir
+	if projDir == "" {
+		root, err := claudeProjectsRoot()
+		if err != nil {
+			return nil, err
+		}
+		projDir = filepath.Join(root, encodeClaudeProject(s.Project))
 	}
-	projDir := filepath.Join(root, encodeClaudeProject(s.Project))
 	transcript := filepath.Join(projDir, s.ID+".jsonl")
 	if _, err := os.Stat(transcript); err != nil {
 		return nil, fmt.Errorf("claude session %s: %w", s.ID, err)

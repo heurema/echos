@@ -109,3 +109,30 @@ func TestJSONOutputSchemas(t *testing.T) {
 	}
 	assertJSONFields(t, openOut, "id", "from", "tool", "installed_path", "resume_command", "degraded")
 }
+
+// TestSessionsJSONOmitsSourceDir pins that Session.SourceDir (an internal
+// field used by adapters to package from the on-disk directory a transcript
+// was actually discovered in) never leaks into the `sessions --json` schema.
+func TestSessionsJSONOmitsSourceDir(t *testing.T) {
+	home := setupHome(t)
+
+	proj := t.TempDir()
+	writeClaudeSession(t, home, proj, "44444444-4444-4444-4444-444444444444", "hello", time.Now())
+
+	sessOut, _, code := run(t, "sessions", "--json")
+	if code != 0 {
+		t.Fatalf("sessions --json failed")
+	}
+	items := decodeJSON[[]map[string]any](t, sessOut)
+	if len(items) != 1 {
+		t.Fatalf("expected 1 session, got %d: %s", len(items), sessOut)
+	}
+	for _, k := range []string{"tool", "id", "project", "title", "updated"} {
+		if _, ok := items[0][k]; !ok {
+			t.Fatalf("session item missing field %q: %+v", k, items[0])
+		}
+	}
+	if _, ok := items[0]["source_dir"]; ok {
+		t.Fatalf("session item should not expose source_dir: %+v", items[0])
+	}
+}
