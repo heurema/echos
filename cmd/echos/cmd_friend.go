@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"sort"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -49,13 +50,15 @@ func (c *FriendAddCmd) Run(app *App) error {
 			warning = fmt.Sprintf("echo-id %s is already saved as %q; adding another alias %q for the same friend", gotEchoID, existing.Name, c.Name)
 		}
 	}
-	book.Upsert(identity.Friend{
+	if err := book.Upsert(identity.Friend{
 		Name:        c.Name,
 		EchoID:      gotEchoID,
 		Fingerprint: fingerprint,
 		PublicKey:   base64.StdEncoding.EncodeToString(pub.Marshal()),
 		AddedAt:     app.Now(),
-	})
+	}); err != nil {
+		return fail(app, c.JSON, 1, "", "%v", err)
+	}
 	if err := book.Save(); err != nil {
 		return fail(app, c.JSON, 1, "", "save friends: %v", err)
 	}
@@ -87,7 +90,7 @@ func (c *FriendListCmd) Run(app *App) error {
 	if err != nil {
 		return fail(app, c.JSON, 1, "", "load friends: %v", err)
 	}
-	friends := book.Friends
+	friends := append([]identity.Friend(nil), book.Friends...)
 	sort.Slice(friends, func(i, j int) bool { return friends[i].Name < friends[j].Name })
 
 	if c.JSON {
@@ -134,13 +137,27 @@ func (c *FriendRmCmd) Run(app *App) error {
 		return fail(app, c.JSON, 1, "", "save friends: %v", err)
 	}
 
+	var stillKnownAs []string
+	for _, other := range book.Friends {
+		if other.EchoID == f.EchoID {
+			stillKnownAs = append(stillKnownAs, other.Name)
+		}
+	}
+
 	if c.JSON {
-		return writeJSON(app.Stdout, map[string]any{
+		out := map[string]any{
 			"name":        f.Name,
 			"echo_id":     f.EchoID,
 			"fingerprint": f.Fingerprint,
-		})
+		}
+		if len(stillKnownAs) > 0 {
+			out["still_known_as"] = stillKnownAs
+		}
+		return writeJSON(app.Stdout, out)
 	}
 	fmt.Fprintf(app.Stdout, "removed %s (%s)\n", f.Name, f.EchoID)
+	if len(stillKnownAs) > 0 {
+		fmt.Fprintf(app.Stdout, "note: %s is still known as %s\n", f.EchoID, strings.Join(stillKnownAs, ", "))
+	}
 	return nil
 }

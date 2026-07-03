@@ -164,6 +164,42 @@ func TestFriendBookRemove(t *testing.T) {
 	}
 }
 
+// TestFriendBookRemoveDuplicateNames: normal use (Upsert) never produces two
+// friends with the same name, but a hand-edited or externally-written
+// friends.json might; Remove must clear all of them, not just the first.
+func TestFriendBookRemoveDuplicateNames(t *testing.T) {
+	book := &FriendBook{Friends: []Friend{
+		{Name: "alice", EchoID: "alice-echo-id"},
+		{Name: "bob", EchoID: "bob-echo-id-1"},
+		{Name: "bob", EchoID: "bob-echo-id-2"},
+	}}
+
+	_, ok := book.Remove("bob")
+	if !ok {
+		t.Fatalf("Remove(bob) = false, want true")
+	}
+	if len(book.Friends) != 1 || book.Friends[0].Name != "alice" {
+		t.Fatalf("Remove(bob) left a duplicate behind: %+v", book.Friends)
+	}
+}
+
+func TestFriendBookUpsertRejectsInvalidName(t *testing.T) {
+	book := &FriendBook{}
+
+	for _, name := range []string{"", "mallory\teid", "mallory\nfake-row"} {
+		if err := book.Upsert(Friend{Name: name, EchoID: "some-echo-id"}); err == nil {
+			t.Fatalf("Upsert with name %q: want an error, got nil", name)
+		}
+	}
+	if len(book.Friends) != 0 {
+		t.Fatalf("a rejected Upsert must not modify the book: %+v", book.Friends)
+	}
+
+	if err := book.Upsert(Friend{Name: "bob", EchoID: "bob-echo-id"}); err != nil {
+		t.Fatalf("Upsert with a valid name: %v", err)
+	}
+}
+
 func TestRelayURLResolution(t *testing.T) {
 	dir := t.TempDir()
 	os.Unsetenv("ECHOS_RELAY")

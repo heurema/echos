@@ -9,7 +9,6 @@ import (
 // text mode and an empty JSON array (not null) in --json mode.
 func TestFriendListEmpty(t *testing.T) {
 	setupHome(t)
-	startTestRelay(t)
 
 	stdout, stderr, code := run(t, "friend", "list")
 	if code != 0 {
@@ -144,7 +143,6 @@ func TestFriendRmRemovesFriend(t *testing.T) {
 // and in --json mode the stderr payload has "error" and "next" fields.
 func TestFriendRmUnknownName(t *testing.T) {
 	setupHome(t)
-	startTestRelay(t)
 
 	_, stderr, code := run(t, "friend", "rm", "ghost")
 	if code != 1 {
@@ -261,5 +259,92 @@ func TestFriendAddSameEchoIDSecondAliasJSON(t *testing.T) {
 	fields := assertJSONFields(t, stdout, "name", "echo_id", "fingerprint", "warning")
 	if !strings.Contains(fields["warning"].(string), `"bob"`) {
 		t.Fatalf("friend add bobby --json warning field missing original alias name: %+v", fields)
+	}
+}
+
+// TestFriendAddRejectsControlCharacterName: a name containing a tab or
+// newline would corrupt `friend list`'s tabwriter output (shifted or
+// fabricated rows), so `friend add` must refuse it and store nothing.
+func TestFriendAddRejectsControlCharacterName(t *testing.T) {
+	aliceHome := setupHome(t)
+	startTestRelay(t)
+
+	bobHome := t.TempDir()
+	t.Setenv("HOME", bobHome)
+	bobOut, _, code := run(t, "id", "--json")
+	if code != 0 {
+		t.Fatalf("bob id --json failed")
+	}
+	bobID := assertJSONFields(t, bobOut, "echo_id")["echo_id"].(string)
+	t.Setenv("HOME", aliceHome)
+
+	_, stderr, code := run(t, "friend", "add", "mallory\tEID-FAKE", bobID)
+	if code != 1 {
+		t.Fatalf("friend add with a tab in the name: code=%d, want 1 (stderr=%s)", code, stderr)
+	}
+	if !strings.Contains(stderr, "invalid") {
+		t.Fatalf("friend add with a tab in the name: stderr = %q, want it to mention the name is invalid", stderr)
+	}
+
+	listOut, _, code := run(t, "friend", "list")
+	if code != 0 {
+		t.Fatalf("friend list: code=%d", code)
+	}
+	if !strings.Contains(listOut, "no friends") {
+		t.Fatalf("friend add with an invalid name must not be stored: friend list = %q", listOut)
+	}
+}
+
+// TestFriendRmStillKnownAsHint: removing one alias for an echo-id that has
+// another saved alias tells the caller the identity is still recognized
+// under that other name, rather than silently implying it's fully gone.
+func TestFriendRmStillKnownAsHint(t *testing.T) {
+	aliceHome := setupHome(t)
+	startTestRelay(t)
+
+	bobHome := t.TempDir()
+	t.Setenv("HOME", bobHome)
+	bobOut, _, code := run(t, "id", "--json")
+	if code != 0 {
+		t.Fatalf("bob id --json failed")
+	}
+	bobID := assertJSONFields(t, bobOut, "echo_id")["echo_id"].(string)
+	t.Setenv("HOME", aliceHome)
+
+	if _, stderr, code := run(t, "friend", "add", "bob", bobID); code != 0 {
+		t.Fatalf("friend add bob: code=%d stderr=%s", code, stderr)
+	}
+	if _, stderr, code := run(t, "friend", "add", "bobby", bobID); code != 0 {
+		t.Fatalf("friend add bobby: code=%d stderr=%s", code, stderr)
+	}
+
+	stdout, stderr, code := run(t, "friend", "rm", "bob")
+	if code != 0 {
+		t.Fatalf("friend rm bob: code=%d stderr=%s", code, stderr)
+	}
+	if !strings.Contains(stdout, "bobby") {
+		t.Fatalf("friend rm bob stdout missing still-known-as hint: %s", stdout)
+	}
+
+	if _, stderr, code := run(t, "friend", "add", "carol", bobID); code != 0 {
+		t.Fatalf("friend add carol: code=%d stderr=%s", code, stderr)
+	}
+	rmOut, stderr, code := run(t, "friend", "rm", "bobby", "--json")
+	if code != 0 {
+		t.Fatalf("friend rm bobby --json: code=%d stderr=%s", code, stderr)
+	}
+	fields := assertJSONFields(t, rmOut, "name", "echo_id", "fingerprint", "still_known_as")
+	knownAs, ok := fields["still_known_as"].([]any)
+	if !ok || len(knownAs) != 1 || knownAs[0] != "carol" {
+		t.Fatalf("friend rm bobby --json still_known_as = %+v, want [\"carol\"]", fields["still_known_as"])
+	}
+
+	// The last alias for an echo-id gets no hint.
+	rmOut2, stderr, code := run(t, "friend", "rm", "carol")
+	if code != 0 {
+		t.Fatalf("friend rm carol: code=%d stderr=%s", code, stderr)
+	}
+	if strings.Contains(rmOut2, "still known as") {
+		t.Fatalf("friend rm carol (last alias) must not print a still-known-as hint: %s", rmOut2)
 	}
 }
