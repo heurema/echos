@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"unicode"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -88,13 +89,53 @@ func (b *FriendBook) FindByEchoID(echoID string) (Friend, bool) {
 	return Friend{}, false
 }
 
-// Upsert adds or replaces a friend by name.
-func (b *FriendBook) Upsert(f Friend) {
+// ValidFriendName rejects names that would corrupt `friend list`'s tabwriter
+// output (tabs/newlines shift or fabricate columns/rows) or any other control
+// character. Enforced on write (Upsert) and re-checked at the CLI boundary.
+func ValidFriendName(name string) bool {
+	if name == "" {
+		return false
+	}
+	for _, r := range name {
+		if unicode.IsControl(r) {
+			return false
+		}
+	}
+	return true
+}
+
+// Upsert adds or replaces a friend by name. It rejects an empty name or one
+// containing a control character.
+func (b *FriendBook) Upsert(f Friend) error {
+	if !ValidFriendName(f.Name) {
+		return fmt.Errorf("invalid friend name %q: must be non-empty with no control characters", f.Name)
+	}
 	for i, existing := range b.Friends {
 		if existing.Name == f.Name {
 			b.Friends[i] = f
-			return
+			return nil
 		}
 	}
 	b.Friends = append(b.Friends, f)
+	return nil
+}
+
+// Remove deletes every friend with the given name, returning the last
+// removed Friend and true, or (Friend{}, false) if no friend has that name.
+// Normal use never stores two friends under the same name (Upsert replaces
+// in place), but a hand-edited or externally-written friends.json might;
+// removing all of them keeps "removed" meaning gone, not "one instance
+// gone".
+func (b *FriendBook) Remove(name string) (Friend, bool) {
+	kept := b.Friends[:0]
+	removed, found := Friend{}, false
+	for _, f := range b.Friends {
+		if f.Name == name {
+			removed, found = f, true
+			continue
+		}
+		kept = append(kept, f)
+	}
+	b.Friends = kept
+	return removed, found
 }
