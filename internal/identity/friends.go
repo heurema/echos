@@ -89,10 +89,10 @@ func (b *FriendBook) FindByEchoID(echoID string) (Friend, bool) {
 	return Friend{}, false
 }
 
-// validFriendName rejects names that would corrupt `friend list`'s
-// tabwriter output (tabs/newlines shift or fabricate columns/rows) or any
-// other control character.
-func validFriendName(name string) bool {
+// ValidFriendName rejects names that would corrupt `friend list`'s tabwriter
+// output (tabs/newlines shift or fabricate columns/rows) or any other control
+// character. Enforced on write (Upsert) and re-checked at the CLI boundary.
+func ValidFriendName(name string) bool {
 	if name == "" {
 		return false
 	}
@@ -107,7 +107,7 @@ func validFriendName(name string) bool {
 // Upsert adds or replaces a friend by name. It rejects an empty name or one
 // containing a control character.
 func (b *FriendBook) Upsert(f Friend) error {
-	if !validFriendName(f.Name) {
+	if !ValidFriendName(f.Name) {
 		return fmt.Errorf("invalid friend name %q: must be non-empty with no control characters", f.Name)
 	}
 	for i, existing := range b.Friends {

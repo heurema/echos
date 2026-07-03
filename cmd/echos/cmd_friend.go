@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/tabwriter"
 	"time"
+	"unicode"
 
 	"github.com/heurema/echos/internal/identity"
 )
@@ -25,6 +26,11 @@ type FriendAddCmd struct {
 }
 
 func (c *FriendAddCmd) Run(app *App) error {
+	// Reject a malformed name before the relay round-trip — it's knowable from
+	// the args alone. Upsert re-checks as defense-in-depth.
+	if !identity.ValidFriendName(c.Name) {
+		return fail(app, c.JSON, 1, "", "invalid friend name %q: must be non-empty with no control characters", c.Name)
+	}
 	next := fmt.Sprintf("echos friend add %s %s", c.Name, c.EchoID)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -114,9 +120,21 @@ func (c *FriendListCmd) Run(app *App) error {
 	tw := tabwriter.NewWriter(app.Stdout, 0, 4, 2, ' ', 0)
 	fmt.Fprintln(tw, "NAME\tECHO-ID\tFINGERPRINT\tADDED")
 	for _, f := range friends {
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", f.Name, f.EchoID, f.Fingerprint, f.AddedAt.Format(time.RFC3339))
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", displayName(f.Name), f.EchoID, f.Fingerprint, f.AddedAt.Format(time.RFC3339))
 	}
 	return tw.Flush()
+}
+
+// displayName strips control characters so a hand-edited friends.json can't
+// corrupt the tabwriter table (Upsert prevents storing such names, but a
+// tampered file bypasses that guard).
+func displayName(name string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, name)
 }
 
 type FriendRmCmd struct {
@@ -157,7 +175,9 @@ func (c *FriendRmCmd) Run(app *App) error {
 	}
 	fmt.Fprintf(app.Stdout, "removed %s (%s)\n", f.Name, f.EchoID)
 	if len(stillKnownAs) > 0 {
-		fmt.Fprintf(app.Stdout, "note: %s is still known as %s\n", f.EchoID, strings.Join(stillKnownAs, ", "))
+		// Advisory → stderr, matching `friend add`'s duplicate-alias warning,
+		// so text-mode stdout carries only the primary result.
+		fmt.Fprintf(app.Stderr, "note: %s is still known as %s\n", f.EchoID, strings.Join(stillKnownAs, ", "))
 	}
 	return nil
 }

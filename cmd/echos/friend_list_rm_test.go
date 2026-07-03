@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -318,12 +320,12 @@ func TestFriendRmStillKnownAsHint(t *testing.T) {
 		t.Fatalf("friend add bobby: code=%d stderr=%s", code, stderr)
 	}
 
-	stdout, stderr, code := run(t, "friend", "rm", "bob")
+	_, stderr, code := run(t, "friend", "rm", "bob")
 	if code != 0 {
 		t.Fatalf("friend rm bob: code=%d stderr=%s", code, stderr)
 	}
-	if !strings.Contains(stdout, "bobby") {
-		t.Fatalf("friend rm bob stdout missing still-known-as hint: %s", stdout)
+	if !strings.Contains(stderr, "bobby") {
+		t.Fatalf("friend rm bob stderr missing still-known-as hint: %s", stderr)
 	}
 
 	if _, stderr, code := run(t, "friend", "add", "carol", bobID); code != 0 {
@@ -346,5 +348,32 @@ func TestFriendRmStillKnownAsHint(t *testing.T) {
 	}
 	if strings.Contains(rmOut2, "still known as") {
 		t.Fatalf("friend rm carol (last alias) must not print a still-known-as hint: %s", rmOut2)
+	}
+}
+
+// TestFriendListSanitizesTamperedName: a hand-edited friends.json can carry a
+// control character in a name that Upsert would have rejected; `friend list`
+// must still render a clean table (control char stripped), not a shifted or
+// fabricated column layout.
+func TestFriendListSanitizesTamperedName(t *testing.T) {
+	home := setupHome(t)
+	dir := filepath.Join(home, ".config", "echos")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// A real tab inside the name (JSON \t) — exactly what Upsert refuses.
+	raw := "{\"friends\":[{\"name\":\"mal\\tlory\",\"echo_id\":\"e1e1e1e1e1e1e1e1e1e1\",\"fingerprint\":\"ff00\",\"pubkey\":\"\",\"added_at\":\"2026-01-01T00:00:00Z\"}]}"
+	if err := os.WriteFile(filepath.Join(dir, "friends.json"), []byte(raw), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	stdout, stderr, code := run(t, "friend", "list")
+	if code != 0 {
+		t.Fatalf("friend list on tampered book: code=%d stderr=%s", code, stderr)
+	}
+	// With the tab stripped the name renders contiguously; a raw tab would be
+	// consumed by the tabwriter as a column break, splitting "mal" from "lory".
+	if !strings.Contains(stdout, "mallory") {
+		t.Fatalf("friend list did not sanitize the control char out of the name: %q", stdout)
 	}
 }
