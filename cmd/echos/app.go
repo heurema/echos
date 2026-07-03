@@ -7,11 +7,18 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"text/tabwriter"
 	"time"
 
 	"github.com/heurema/echos/internal/identity"
 	"github.com/heurema/echos/internal/relay"
 )
+
+// newTabWriter returns the CLI's shared aligned-columns writer, so the
+// human-readable tables (friend list, sessions) keep one column config.
+func newTabWriter(w io.Writer) *tabwriter.Writer {
+	return tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
+}
 
 // registerHint returns "echos id" as the recovery next-command when err is a
 // relay 404 — the challenge/mailbox endpoints 404 when the caller's key is not

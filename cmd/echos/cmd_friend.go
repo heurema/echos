@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"text/tabwriter"
 	"time"
 	"unicode"
 
@@ -117,7 +116,7 @@ func (c *FriendListCmd) Run(app *App) error {
 		fmt.Fprintln(app.Stdout, "no friends")
 		return nil
 	}
-	tw := tabwriter.NewWriter(app.Stdout, 0, 4, 2, ' ', 0)
+	tw := newTabWriter(app.Stdout)
 	fmt.Fprintln(tw, "NAME\tECHO-ID\tFINGERPRINT\tADDED")
 	for _, f := range friends {
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", displayName(f.Name), f.EchoID, f.Fingerprint, f.AddedAt.Format(time.RFC3339))
@@ -155,12 +154,7 @@ func (c *FriendRmCmd) Run(app *App) error {
 		return fail(app, c.JSON, 1, "", "save friends: %v", err)
 	}
 
-	var stillKnownAs []string
-	for _, other := range book.Friends {
-		if other.EchoID == f.EchoID {
-			stillKnownAs = append(stillKnownAs, other.Name)
-		}
-	}
+	stillKnownAs := book.NamesForEchoID(f.EchoID)
 
 	if c.JSON {
 		out := map[string]any{

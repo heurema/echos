@@ -382,3 +382,21 @@ func TestIdentityExternalKeySSHAgentFallback(t *testing.T) {
 		t.Fatalf("agent-produced signature does not verify: %v", err)
 	}
 }
+
+func TestFriendBookNamesForEchoID(t *testing.T) {
+	var b FriendBook
+	b.Upsert(Friend{Name: "bob", EchoID: "e-bob"})
+	b.Upsert(Friend{Name: "bobby", EchoID: "e-bob"})
+	b.Upsert(Friend{Name: "carol", EchoID: "e-carol"})
+
+	got := b.NamesForEchoID("e-bob")
+	if len(got) != 2 || got[0] != "bob" || got[1] != "bobby" {
+		t.Fatalf("NamesForEchoID(e-bob) = %v, want [bob bobby] in stored order", got)
+	}
+	if got := b.NamesForEchoID("e-carol"); len(got) != 1 || got[0] != "carol" {
+		t.Fatalf("NamesForEchoID(e-carol) = %v, want [carol]", got)
+	}
+	if got := b.NamesForEchoID("e-nobody"); got != nil {
+		t.Fatalf("NamesForEchoID(unknown) = %v, want nil", got)
+	}
+}

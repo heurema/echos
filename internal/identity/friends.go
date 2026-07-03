@@ -89,6 +89,17 @@ func (b *FriendBook) FindByEchoID(echoID string) (Friend, bool) {
 	return Friend{}, false
 }
 
+// NamesForEchoID returns the local aliases saved for echoID, in stored order.
+func (b *FriendBook) NamesForEchoID(echoID string) []string {
+	var names []string
+	for _, f := range b.Friends {
+		if f.EchoID == echoID {
+			names = append(names, f.Name)
+		}
+	}
+	return names
+}
+
 // ValidFriendName rejects names that would corrupt `friend list`'s tabwriter
 // output (tabs/newlines shift or fabricate columns/rows) or any other control
 // character. Enforced on write (Upsert) and re-checked at the CLI boundary.
