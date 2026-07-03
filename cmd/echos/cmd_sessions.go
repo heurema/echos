@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"text/tabwriter"
 	"time"
 
 	"github.com/heurema/echos/internal/session"
@@ -44,7 +43,7 @@ func (c *SessionsCmd) Run(app *App) error {
 		fmt.Fprintln(app.Stdout, "no sessions found")
 		return nil
 	}
-	tw := tabwriter.NewWriter(app.Stdout, 0, 4, 2, ' ', 0)
+	tw := newTabWriter(app.Stdout)
 	fmt.Fprintln(tw, "TOOL\tID\tPROJECT\tTITLE\tUPDATED")
 	for _, s := range sessions {
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n", s.Tool, s.ID, s.Project, s.Title, s.Updated.Format(time.RFC3339))
